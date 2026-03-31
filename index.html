@@ -2364,34 +2364,50 @@ async function salvar(nome, id) {
     registrarUso(nome);
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
-    
-    // Pega a data do calendário + Hora atual para a linha poder subir no mesmo dia
     const dataInput = document.getElementById("date-"+id).value; 
-    const partes = dataInput.split('-');
-    const agora = new Date();
-    const horaMinuto = agora.getHours().toString().padStart(2, '0') + ":" + agora.getMinutes().toString().padStart(2, '0');
     
-    // Formato: "31/03 14:30"
-    const dataH = `${partes[2]}/${partes[1]} ${horaMinuto}`;
+    // Captura a hora para permitir múltiplos pontos no mesmo dia (inclinação)
+    const agora = new Date();
+    const hora = agora.getHours().toString().padStart(2, '0') + ":" + agora.getMinutes().toString().padStart(2, '0');
+    const partes = dataInput.split('-');
+    const dataFormatada = `${partes[2]}/${partes[1]} ${hora}`;
 
+    // 1. Salva no celular (Local)
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
     let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
+    
+    // Só adiciona ao histórico se o peso for diferente do último (evita pontos duplicados iguais)
+    if (hist.length === 0 || hist[hist.length - 1].peso !== p) {
+        hist.push({ data: dataFormatada, peso: p });
+    }
+    if (hist.length > 10) hist.shift();
+    
+    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
 
-    // LÓGICA DE INCLINAÇÃO: 
-    // Se o peso atual for diferente do último salvo, ele adiciona um novo ponto (a linha sobe/desce)
-    const ultimoRegistro = hist.length > 0 ? hist[hist.length - 1] : null;
+    // 2. Tenta salvar na Nuvem (Supabase)
+    if(usuario !== "convidado") {
+        const { error } = await _supabase.from('treinos').upsert(
+            { 
+                user_id: usuario, 
+                exercicio: nome, 
+                peso: p, 
+                meta: m,
+                historico: JSON.stringify(hist) // Se esta coluna não existir no SQL, o erro acontece aqui
+            },
+            { onConflict: 'user_id, exercicio' }
+        );
 
-    if (!ultimoRegistro || ultimoRegistro.peso !== p) {
-        hist.push({ data: dataH, peso: p });
-    } else {
-        // Se o peso for igual, ele apenas atualiza a hora do último ponto (linha reta)
-        hist[hist.length - 1].data = dataH;
+        if (error) {
+            console.error("Erro ao salvar no Supabase:", error.message);
+            alert("Erro ao salvar na nuvem: " + error.message);
+        }
     }
 
-    if (hist.length > 12) hist.shift(); // Aumentei para 12 pontos para veres melhor a evolução
-    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
+    renderizarGraficoReal(nome, id);
+    atualizarBarra(id, p, m);
+}
 
     // Atualiza a barra azul/verde
     const bar = document.getElementById("bar-"+id);
@@ -2406,7 +2422,6 @@ async function salvar(nome, id) {
             { onConflict: 'user_id, exercicio' }
         );
     }
-}
 function alternarGrafico(nome, id) {
     const cont = document.getElementById("cont-" + id);
     if (cont.style.display === "block") {

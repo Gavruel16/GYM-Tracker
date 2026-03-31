@@ -2365,32 +2365,32 @@ async function salvar(nome, id) {
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
     
-    // 1. Pega a data escolhida no calendário do card
+    // Pega a data do calendário + Hora atual para a linha poder subir no mesmo dia
     const dataInput = document.getElementById("date-"+id).value; 
     const partes = dataInput.split('-');
-    const dataFormatada = `${partes[2]}/${partes[1]}`; // Ex: 16/03
+    const agora = new Date();
+    const horaMinuto = agora.getHours().toString().padStart(2, '0') + ":" + agora.getMinutes().toString().padStart(2, '0');
+    
+    // Formato: "31/03 14:30"
+    const dataH = `${partes[2]}/${partes[1]} ${horaMinuto}`;
 
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
     let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
 
-    // 2. Se já existir essa data, atualiza. Se não, adiciona.
-    const indexData = hist.findIndex(item => item.data === dataFormatada);
-    if (indexData !== -1) {
-        hist[indexData].peso = p;
+    // LÓGICA DE INCLINAÇÃO: 
+    // Se o peso atual for diferente do último salvo, ele adiciona um novo ponto (a linha sobe/desce)
+    const ultimoRegistro = hist.length > 0 ? hist[hist.length - 1] : null;
+
+    if (!ultimoRegistro || ultimoRegistro.peso !== p) {
+        hist.push({ data: dataH, peso: p });
     } else {
-        hist.push({ data: dataFormatada, peso: p });
+        // Se o peso for igual, ele apenas atualiza a hora do último ponto (linha reta)
+        hist[hist.length - 1].data = dataH;
     }
 
-    // 3. ORDENAR POR DATA (Faz a linha subir/descer na ordem certa do tempo)
-    hist.sort((a, b) => {
-        const [diaA, mesA] = a.data.split('/').map(Number);
-        const [diaB, mesB] = b.data.split('/').map(Number);
-        return new Date(2026, mesA - 1, diaA) - new Date(2026, mesB - 1, diaB);
-    });
-
-    if (hist.length > 10) hist = hist.slice(-10);
+    if (hist.length > 12) hist.shift(); // Aumentei para 12 pontos para veres melhor a evolução
     localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
 
     // Atualiza a barra azul/verde

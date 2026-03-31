@@ -2376,6 +2376,7 @@ function alternarGrafico(nome, id) {
         cont.style.display = "none";
     } else {
         cont.style.display = "block";
+        registrarUso(nome); // <--- ADICIONE ESTA LINHA AQUI
         renderizarGraficoReal(nome, id);
     }
 }

@@ -2400,9 +2400,15 @@ async function salvar(nome, id) {
     bar.style.background = porc === 100 ? '#27ae60' : '#4285F4';
 
     // Envia para o Supabase
-    if(usuario !== "convidado") {
+ if(usuario !== "convidado") {
         await _supabase.from('treinos').upsert(
-            { user_id: usuario, exercicio: nome, peso: p, meta: m },
+            { 
+                user_id: usuario, 
+                exercicio: nome, 
+                peso: p, 
+                meta: m,
+                historico: JSON.stringify(hist) 
+            },
             { onConflict: 'user_id, exercicio' }
         );
     }

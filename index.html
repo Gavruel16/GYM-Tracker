@@ -2257,7 +2257,36 @@ function toggleFav() {
     recarregarLista();
 }
 
-function recarregarLista() {
+// Adicionamos ASYNC aqui para o banco de dados responder
+async function recarregarLista() {
+    
+    // --- BLOCO DA NUVEM: PUXAR DADOS DO SUPABASE ---
+    if (usuario && usuario !== "convidado") {
+        try {
+            const { data: dadosNuvem, error } = await _supabase
+                .from('treinos')
+                .select('*')
+                .eq('user_id', usuario);
+
+            if (dadosNuvem && !error) {
+                dadosNuvem.forEach(t => {
+                    // Sincroniza Peso Atual, Meta e o Histórico do Gráfico
+                    const key = usuario + "_" + t.exercicio;
+                    localStorage.setItem(key, t.peso);
+                    localStorage.setItem(key + "_meta", t.meta);
+                    
+                    if (t.historico) {
+                        localStorage.setItem(key + "_hist", t.historico);
+                    }
+                });
+                console.log("☁️ Nuvem sincronizada com sucesso!");
+            }
+        } catch (err) {
+            console.error("Erro ao sincronizar nuvem:", err);
+        }
+    }
+    // --- FIM DO BLOCO DA NUVEM ---
+
     const termo = document.getElementById("busca").value.toLowerCase();
     filtrados = maquinas.filter(m => {
         const matchesGrupo = (grupoAtual === "todos" || m.grupo === grupoAtual);
@@ -2265,6 +2294,7 @@ function recarregarLista() {
         const matchesFav = !mostrarFav || localStorage.getItem(usuario + "_" + m.nome + "_fav") === "true";
         return matchesGrupo && matchesBusca && matchesFav;
     });
+
     document.getElementById("lista").innerHTML = "";
     idxAtual = 0;
     renderMais();

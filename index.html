@@ -2364,21 +2364,27 @@ async function salvar(nome, id) {
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
-    // ============================================================
-    // INÍCIO DO BLOCO DO HISTÓRICO (COLE AQUI)
-   const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+   // --- LOCALIZAÇÃO: Logo após os localStorage.setItem de peso e meta ---
+    const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
     let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
 
+    // 1. Procurar se já existe um registo com a data de HOJE
     const indexHoje = hist.findIndex(item => item.data === dataH);
+
     if (indexHoje !== -1) {
+        // Se já existe hoje, apenas atualiza o peso (evita a linha reta)
         hist[indexHoje].peso = p;
     } else {
+        // Se é um dia novo, ADICIONA ao final da lista (da esquerda para a direita)
         hist.push({ data: dataH, peso: p });
     }
 
-    // Se o gráfico estiver invertido, garantimos que ele mantém apenas os últimos 7
-    if(hist.length > 7) hist.shift(); 
-    
+    // 2. Garante que a lista não ultrapassa 7 dias, removendo sempre o mais ANTIGO (o primeiro)
+    while (hist.length > 7) {
+        hist.shift(); 
+    }
+
+    // 3. Salva a versão limpa e atualizada
     localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
     // ============================================================
     // FIM DO BLOCO DO HISTÓRICO

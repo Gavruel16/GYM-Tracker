@@ -2206,6 +2206,17 @@ async function login() {
     const { error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
     if (error) alert(error.message);
 }
+async function cadastrar() {
+    const e = document.getElementById("email_input").value;
+    const p = document.getElementById("pass_input").value;
+    const { error } = await _supabase.auth.signUp({ email: e, password: p });
+    
+    if (error) {
+        alert("Erro ao cadastrar: " + error.message);
+    } else {
+        alert("Conta criada com sucesso! Já podes fazer login.");
+    }
+}
 async function logout() { await _supabase.auth.signOut(); location.reload(); }
 
 _supabase.auth.onAuthStateChange((event, session) => {

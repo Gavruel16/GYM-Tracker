@@ -2293,44 +2293,48 @@ function renderMais() {
 
         const card = document.createElement("div");
         card.className = "card";
-        card.innerHTML = `
-            <span class="fav-btn ${isFav?'fav-active':''}" onclick="favoritar('${m.nome}', this)">★</span>
-            <button class="yt-btn" onclick="window.open('https://youtube.com/results?search_query=execução+${m.nome}')">?</button>
-            <h3 style="margin-top:5px; font-size:18px">${m.nome}</h3>
-            
-            <div class="progress-bg"><div id="bar-${id}" class="progress-bar" style="width:${porc}%; background:${porc==100?'#27ae60':'#4285F4'}"></div></div>
-            
-            <div class="timer-box">
-                <span id="display-${id}" class="timer-display">00s</span>
-                <button class="btn-timer" onclick="iniciarTimer('${id}', 45)">45s</button>
-                <button class="btn-timer" onclick="iniciarTimer('${id}', 90)">90s</button>
-            </div>
+       card.innerHTML = `
+    <span class="fav-btn ${isFav?'fav-active':''}" onclick="favoritar('${m.nome}', this)">★</span>
+    <button class="yt-btn" onclick="window.open('https://youtube.com/results?search_query=execução+${m.nome}')">?</button>
+    <h3 style="margin-top:5px; font-size:18px">${m.nome}</h3>
+    
+    <div class="progress-bg"><div id="bar-${id}" class="progress-bar" style="width:${porc}%; background:${porc==100?'#27ae60':'#4285F4'}"></div></div>
+    
+    <div class="timer-box">
+        <span id="display-${id}" class="timer-display">00s</span>
+        <button class="btn-timer" onclick="iniciarTimer('${id}', 45)">45s</button>
+        <button class="btn-timer" onclick="iniciarTimer('${id}', 90)">90s</button>
+    </div>
 
-            <div class="controls-row">
-                <div class="control-group">
-                    <span class="input-label">Peso</span>
-                    <div class="stepper"><button class="btn-step" onclick="step('${id}', 'p', -2)">-</button>
-                    <input type="number" id="p-${id}" value="${p}" class="input-field">
-                    <button class="btn-step" onclick="step('${id}', 'p', 2)">+</button></div>
-                </div>
-                <div class="control-group">
-                    <span class="input-label">Meta</span>
-                    <div class="stepper"><button class="btn-step" onclick="step('${id}', 'm', -2)">-</button>
-                    <input type="number" id="m-${id}" value="${mt}" class="input-field meta-field">
-                    <button class="btn-step" onclick="step('${id}', 'm', 2)">+</button></div>
-                </div>
-            </div>
+    <div class="controls-row">
+        <div class="control-group">
+            <span class="input-label">Peso</span>
+            <div class="stepper"><button class="btn-step" onclick="step('${id}', 'p', -2)">-</button>
+            <input type="number" id="p-${id}" value="${p}" class="input-field">
+            <button class="btn-step" onclick="step('${id}', 'p', 2)">+</button></div>
+        </div>
+        <div class="control-group">
+            <span class="input-label">Meta</span>
+            <div class="stepper"><button class="btn-step" onclick="step('${id}', 'm', -2)">-</button>
+            <input type="number" id="m-${id}" value="${mt}" class="input-field meta-field">
+            <button class="btn-step" onclick="step('${id}', 'm', 2)">+</button></div>
+        </div>
+    </div>
 
-            <div style="display:flex; gap:10px;">
-                <button onclick="salvar('${m.nome}', '${id}')" class="btn-save" style="flex:3">SALVAR</button>
-                <button onclick="alternarGrafico('${m.nome}', '${id}')" style="background:#333; border:none; border-radius:10px; flex:1; color:white; font-size:20px;">📈</button>
-            </div>
+    <input type="date" id="date-${id}" class="input-field" 
+           style="width:90%; margin-bottom:10px; background:#222; color:white; border:1px solid #444; border-radius:10px; padding:5px; text-align:center;" 
+           value="${new Date().toISOString().split('T')[0]}">
 
-            <div id="cont-${id}" class="chart-container">
-                <button class="btn-delete-hist" onclick="excluirHistorico('${m.nome}', '${id}')">🗑️ APAGAR DADOS DO GRÁFICO</button>
-                <canvas id="canvas-${id}"></canvas>
-            </div>
-        `;
+    <div style="display:flex; gap:10px;">
+        <button onclick="salvar('${m.nome}', '${id}')" class="btn-save" style="flex:3">SALVAR</button>
+        <button onclick="alternarGrafico('${m.nome}', '${id}')" style="background:#333; border:none; border-radius:10px; flex:1; color:white; font-size:20px;">📈</button>
+    </div>
+
+    <div id="cont-${id}" class="chart-container">
+        <button class="btn-delete-hist" onclick="excluirHistorico('${m.nome}', '${id}')">🗑️ APAGAR DADOS DO GRÁFICO</button>
+        <canvas id="canvas-${id}"></canvas>
+    </div>
+`;
         container.appendChild(card);
     });
     idxAtual += 8;

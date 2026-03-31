@@ -2357,9 +2357,10 @@ function iniciarTimer(id, segs) {
 }
 
 async function salvar(nome, id) {
-    registrarUso(nome); // <--- ADICIONE ESTA LINHA AQUI
+registrarUso(nome); 
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
+    
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
@@ -2374,7 +2375,13 @@ async function salvar(nome, id) {
     bar.style.width = porc + "%";
     bar.style.background = porc === 100 ? '#27ae60' : '#4285F4';
 
-    if(usuario !== "convidado") await _supabase.from('treinos').upsert({ user_id: usuario, exercicio: nome, peso: p, meta: m });
+    // CÓDIGO ATUALIZADO PARA EVITAR ERRO 409:
+    if(usuario !== "convidado") {
+        await _supabase.from('treinos').upsert(
+            { user_id: usuario, exercicio: nome, peso: p, meta: m },
+            { onConflict: 'user_id, exercicio' } 
+        );
+    }
 }
 
 function alternarGrafico(nome, id) {
@@ -2415,7 +2422,7 @@ function excluirHistorico(nome, id) {
 // [COLE AQUI - FINAL DO ARQUIVO]
 
 async function registrarUso(nome) {
-    
+
     if (!nome || usuario === "convidado") return;
     
     // O nome da chave aqui 'nome_ex' TEM que ser igual ao do SQL

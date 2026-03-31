@@ -2357,52 +2357,49 @@ function iniciarTimer(id, segs) {
 }
 
 async function salvar(nome, id) {
-    registrarUso(nome); 
+    registrarUso(nome);
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
     
+    // 1. PEGA A DATA DO BOTÃO/CALENDÁRIO
+    const dataInput = document.getElementById("date-"+id).value; 
+    const partes = dataInput.split('-');
+    const dataH = `${partes[2]}/${partes[1]}`; // Formata para DD/MM
+
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
-  // --- BLOCO DO HISTÓRICO PARA GRÁFICO DINÂMICO ---
-    const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-    let hist = [];
-    
-    try {
-        const salvo = localStorage.getItem(usuario + "_" + nome + "_hist");
-        hist = salvo ? JSON.parse(salvo) : [];
-    } catch (e) { hist = []; }
+    let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
 
-    // 1. Verifica se já existe um registro para HOJE
-    const indexHoje = hist.findIndex(item => item.data === dataH);
+    // 2. PROCURA SE JÁ EXISTE ESSA DATA NO HISTÓRICO
+    const indexData = hist.findIndex(item => item.data === dataH);
 
-    if (indexHoje !== -1) {
-        // Se já salvou hoje, ele apenas ATUALIZA o peso do ponto de hoje.
-        // Se o peso 'p' for igual ao anterior, a linha fica reta.
-        // Se o peso 'p' for diferente, a linha sobe ou desce no ponto de hoje.
-        hist[indexHoje].peso = p;
+    if (indexData !== -1) {
+        hist[indexData].peso = p; // Se já existe, atualiza o peso daquele dia
     } else {
-        // Se mudou o dia (é amanhã), ele CRIA um novo ponto à direita.
-        hist.push({ data: dataH, peso: p });
+        hist.push({ data: dataH, peso: p }); // Se é novo, adiciona
     }
 
-    // 2. Mantém os últimos 7 dias para o gráfico não ficar gigante
-    if (hist.length > 7) {
-        hist = hist.slice(-7);
-    }
+    // 3. ORDENA O GRÁFICO (Para a linha sempre subir da esquerda para a direita)
+    hist.sort((a, b) => {
+        const [diaA, mesA] = a.data.split('/').map(Number);
+        const [diaB, mesB] = b.data.split('/').map(Number);
+        return new Date(2026, mesA - 1, diaA) - new Date(2026, mesB - 1, diaB);
+    });
 
-    localStorage.setItem(usuario + "_" + nome + "_hist", JSON.stringify(hist));
-    // --- FIM DO BLOCO ---
+    if (hist.length > 10) hist = hist.slice(-10);
+    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
 
-    // A partir da linha 2435 (aprox):
+    // Atualiza a barra visual
     const bar = document.getElementById("bar-"+id);
     const porc = m > 0 ? Math.min((p/m)*100, 100) : 0;
     bar.style.width = porc + "%";
-    
+
+    // Envia para o Supabase
     if(usuario !== "convidado") {
         await _supabase.from('treinos').upsert(
             { user_id: usuario, exercicio: nome, peso: p, meta: m },
-            { onConflict: 'user_id, exercicio' } 
+            { onConflict: 'user_id, exercicio' }
         );
     }
 }

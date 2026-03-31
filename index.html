@@ -2364,29 +2364,35 @@ async function salvar(nome, id) {
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
-   // --- LOCALIZAÇÃO: Logo após os localStorage.setItem de peso e meta ---
+  // --- BLOCO DO HISTÓRICO PARA GRÁFICO DINÂMICO ---
     const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-    let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
+    let hist = [];
+    
+    try {
+        const salvo = localStorage.getItem(usuario + "_" + nome + "_hist");
+        hist = salvo ? JSON.parse(salvo) : [];
+    } catch (e) { hist = []; }
 
-    // 1. Procurar se já existe um registo com a data de HOJE
+    // 1. Verifica se já existe um registro para HOJE
     const indexHoje = hist.findIndex(item => item.data === dataH);
 
     if (indexHoje !== -1) {
-        // Se já existe hoje, apenas atualiza o peso (evita a linha reta)
+        // Se já salvou hoje, ele apenas ATUALIZA o peso do ponto de hoje.
+        // Se o peso 'p' for igual ao anterior, a linha fica reta.
+        // Se o peso 'p' for diferente, a linha sobe ou desce no ponto de hoje.
         hist[indexHoje].peso = p;
     } else {
-        // Se é um dia novo, ADICIONA ao final da lista (da esquerda para a direita)
+        // Se mudou o dia (é amanhã), ele CRIA um novo ponto à direita.
         hist.push({ data: dataH, peso: p });
     }
 
-    // 2. Garante que a lista não ultrapassa 7 dias, removendo sempre o mais ANTIGO (o primeiro)
-    while (hist.length > 7) {
-        hist.shift(); 
+    // 2. Mantém os últimos 7 dias para o gráfico não ficar gigante
+    if (hist.length > 7) {
+        hist = hist.slice(-7);
     }
 
-    // 3. Salva a versão limpa e atualizada
-    // ... (código do histórico acima)
-    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
+    localStorage.setItem(usuario + "_" + nome + "_hist", JSON.stringify(hist));
+    // --- FIM DO BLOCO ---
 
     // A partir da linha 2435 (aprox):
     const bar = document.getElementById("bar-"+id);

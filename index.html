@@ -62,6 +62,11 @@
         <button class="btn-save" onclick="cadastrar()" style="width: 200px; margin-top: 10px; background: #333; border: 1px solid #444;">Criar Conta</button>
     </div>
 
+    <div id="user-info" style="display:none; margin-bottom:15px;">
+        <span id="user-text" style="font-weight: bold; color: #4285F4;"></span>
+        <button onclick="logout()" style="background:#c53030; font-size:11px; border:none; color:white; border-radius:4px; padding:4px 10px; margin-left:10px;">Sair</button>
+    </div>
+
 <div id="app" style="display:none;">
     <input type="text" id="busca" class="search-bar" placeholder="Buscar exercício..." oninput="recarregarLista()">
     

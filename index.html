@@ -2365,7 +2365,7 @@ async function salvar(nome, id) {
     registrarUso(nome);
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
-    
+
     // Captura a hora para permitir múltiplos pontos no mesmo dia (inclinação)
     const agora = new Date();
     const hora = agora.getHours().toString().padStart(2, '0') + ":" + agora.getMinutes().toString().padStart(2, '0');
@@ -2379,35 +2379,24 @@ async function salvar(nome, id) {
     let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
     
     // Só adiciona ao histórico se o peso for diferente do último (evita pontos duplicados iguais)
-    if (hist.length === 0 || hist[hist.length - 1].peso !== p) {
-        hist.push({ data: dataFormatada, peso: p });
-    }
-    if (hist.length > 10) hist.shift();
-    
-    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
-
-    // 2. Tenta salvar na Nuvem (Supabase)
     if(usuario !== "convidado") {
-        const { error } = await _supabase.from('treinos').upsert(
-            { 
-                user_id: usuario, 
-                exercicio: nome, 
-                peso: p, 
-                meta: m,
-                historico: JSON.stringify(hist) // Se esta coluna não existir no SQL, o erro acontece aqui
-            },
+        // O "await" só funciona se a função lá em cima tiver "async"
+        await _supabase.from('treinos').upsert(
+            { user_id: usuario, exercicio: nome, peso: p, meta: m, historico: JSON.stringify(hist) },
             { onConflict: 'user_id, exercicio' }
         );
+    }
+}
 
         if (error) {
             console.error("Erro ao salvar no Supabase:", error.message);
             alert("Erro ao salvar na nuvem: " + error.message);
         }
-    }
+    
 
     renderizarGraficoReal(nome, id);
     atualizarBarra(id, p, m);
-}
+
 
     // Atualiza a barra azul/verde
     const bar = document.getElementById("bar-"+id);

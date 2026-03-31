@@ -2405,16 +2405,39 @@ function excluirHistorico(nome, id) {
         }
     }
 }
-// Cole isso lá no final, antes do último
-async function registrarUso(nome) {
-    if (usuario === "convidado") return; // Não registra se for convidado
+// [COLE AQUI - FINAL DO ARQUIVO]
 
+async function registrarUso(nome) {
+    if (usuario === "convidado") return;
     try {
-        // Isso chama a função SQL (RPC) que criamos no banco do Supabase
         await _supabase.rpc('incrementar_exercicio', { nome_ex: nome });
     } catch (e) {
         console.error("Erro ao registrar estatística:", e);
     }
+}
+
+async function prepararRelatorioAdmin() {
+    const { data: stats, error } = await _supabase
+        .from('exercicio_stats')
+        .select('*')
+        .order('cliques', { ascending: false })
+        .limit(5);
+
+    if (error || !stats) return;
+
+    let texto = `*RELATÓRIO DE USO - GYM TRACKER PRO*\n\n`;
+    stats.forEach((item, index) => {
+        texto += `${index + 1}º - *${item.exercicio_nome}*: ${item.cliques} usos\n`;
+    });
+
+    const btnAdmin = document.createElement("button");
+    btnAdmin.innerHTML = "📲 Relatório WhatsApp";
+    btnAdmin.style = "position:fixed; bottom:20px; right:20px; z-index:9999; padding:12px; border-radius:50px; background:#25D366; color:white; border:none; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);";
+    
+    btnAdmin.onclick = () => {
+        window.open(`https://wa.me/5513996222470?text=${encodeURIComponent(texto)}`, '_blank');
+    };
+    document.body.appendChild(btnAdmin);
 }
 </script>
 </body>

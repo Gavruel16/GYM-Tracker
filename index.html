@@ -2385,18 +2385,14 @@ async function salvar(nome, id) {
     }
 
     // 3. Salva a versão limpa e atualizada
+    // ... (código do histórico acima)
     localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
-    // ============================================================
-    // FIM DO BLOCO DO HISTÓRICO
-    // ============================================================
 
-    // REFERÊNCIA ABAIXO: Parte que cuida da barra azul/verde
+    // A partir da linha 2435 (aprox):
     const bar = document.getElementById("bar-"+id);
     const porc = m > 0 ? Math.min((p/m)*100, 100) : 0;
     bar.style.width = porc + "%";
-    bar.style.background = porc === 100 ? '#27ae60' : '#4285F4';
-
-    // Parte que envia para o Supabase
+    
     if(usuario !== "convidado") {
         await _supabase.from('treinos').upsert(
             { user_id: usuario, exercicio: nome, peso: p, meta: m },
@@ -2404,7 +2400,6 @@ async function salvar(nome, id) {
         );
     }
 }
-
 function alternarGrafico(nome, id) {
     const cont = document.getElementById("cont-" + id);
     if (cont.style.display === "block") {

@@ -2390,18 +2390,21 @@ async function salvar(nome, id) {
     bar.style.background = porc === 100 ? '#27ae60' : '#4285F4';
 
     // Envia para o Supabase
- if(usuario !== "convidado") {
-        await _supabase.from('treinos').upsert(
-            { 
-                user_id: usuario, 
-                exercicio: nome, 
-                peso: p, 
-                meta: m,
-                historico: JSON.stringify(hist) 
-            },
-            { onConflict: 'user_id, exercicio' }
-        );
+// ENVIO PARA A NUVEM
+    if(usuario !== "convidado") {
+        const { error } = await _supabase.from('treinos').upsert({ 
+            user_id: usuario, 
+            exercicio: nome, 
+            peso: p, 
+            meta: m,
+            historico: JSON.stringify(hist) // <--- ENVIA O GRÁFICO
+        }, { onConflict: 'user_id, exercicio' });
+
+        if (error) console.log("Erro Nuvem:", error.message);
+        else console.log("✅ Salvo na Nuvem!");
     }
+    
+    renderizarGraficoReal(nome, id); // Atualiza o gráfico na hora
 }
 
 function alternarGrafico(nome, id) {

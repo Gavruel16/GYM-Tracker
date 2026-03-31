@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Tracker PRO</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: white; text-align: center; margin: 0; padding: 15px; overflow-x: hidden; }
+        .card { background: #1a1a1a; padding: 20px; border-radius: 15px; width: 320px; border: 1px solid #333; margin: 10px auto; position: relative; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        h1 { color: #4285F4; margin-bottom: 5px; font-size: 24px; }
+        
+        .search-bar { width: 95%; max-width: 450px; padding: 15px; border-radius: 30px; background: #222; border: 1px solid #444; color: white; margin-bottom: 10px; font-size: 16px; }
+        .filter-container { margin: 10px 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+        .filter-container button { padding: 8px 14px; font-size: 12px; background: #262626; border: 1px solid #444; border-radius: 20px; color: #ccc; cursor: pointer; }
+        .filter-container button.active { background: #4285F4; color: white; border-color: #4285F4; }
+
+        .fav-btn { position: absolute; top: 15px; left: 15px; font-size: 20px; cursor: pointer; color: #555; transition: 0.3s; }
+        .fav-active { color: #f1c40f; }
+        .yt-btn { position: absolute; top: 15px; right: 15px; background: #c4302b; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; font-weight: bold; cursor: pointer; }
+
+        .controls-row { display: flex; justify-content: space-around; margin: 15px 0; gap: 10px; }
+        .control-group { display: flex; flex-direction: column; align-items: center; background: #222; padding: 10px; border-radius: 12px; flex: 1; }
+        .input-label { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
+        
+        .stepper { display: flex; align-items: center; gap: 5px; }
+        .btn-step { background: #333; color: white; border: none; width: 35px; height: 35px; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer; }
+        .input-field { width: 60px; background: transparent; border: none; color: white; text-align: center; font-size: 22px; font-weight: bold; font-family: monospace; }
+        .meta-field { color: #27ae60; }
+
+        .progress-bg { background: #333; border-radius: 10px; height: 14px; margin: 15px 0; overflow: hidden; }
+        .progress-bar { height: 100%; transition: width 0.3s ease; }
+        
+        .timer-box { margin-bottom: 15px; background: #111; padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .timer-display { font-family: monospace; font-size: 22px; color: #e67e22; font-weight: bold; min-width: 55px; }
+        .btn-timer { background: #333; padding: 8px 15px; font-size: 13px; color: white; border: none; border-radius: 6px; }
+
+        .btn-save { background: #4285F4; color: white; width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; }
+        
+        /* GRÁFICO E APAGAR */
+        .chart-container { width: 100%; display: none; margin-top: 15px; background: #111; padding: 10px; border-radius: 10px; box-sizing: border-box; }
+        .btn-delete-hist { background: #c53030; color: white; border: none; border-radius: 6px; padding: 8px; font-size: 11px; margin-bottom: 10px; cursor: pointer; width: 100%; font-weight: bold; }
+        canvas { max-height: 150px; width: 100% !important; }
+        
+        #sentinel { padding: 30px; color: #555; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h1>🏋️ Gym Tracker PRO</h1>
+
+<div id="auth-section">
+    <div id="login-form">
+        <input type="email" id="email_input" class="search-bar" placeholder="Teu E-mail" style="max-width: 300px;">
+        <input type="password" id="pass_input" class="search-bar" placeholder="Senha" style="max-width: 300px;">
+        <br>
+        <button class="btn-save" onclick="login()" style="width: 200px; margin-top: 10px;">Entrar</button>
+    </div>
+    <div id="user-info" style="display:none; margin-bottom:15px;">
+        <span id="user-text" style="font-weight: bold; color: #4285F4;"></span>
+        <button onclick="logout()" style="background:#c53030; font-size:11px; border:none; color:white; border-radius:4px; padding:4px 10px; margin-left:10px;">Sair</button>
+    </div>
+</div>
+
+<div id="app" style="display:none;">
+    <input type="text" id="busca" class="search-bar" placeholder="Buscar exercício..." oninput="recarregarLista()">
+    
+    <div class="filter-container">
+        <button onclick="setGrupo('todos')" id="btn-todos" class="active">Todos</button>
+        <button onclick="setGrupo('peito')">Peito</button>
+        <button onclick="setGrupo('costas')">Costas</button>
+        <button onclick="setGrupo('biceps')">Bíceps</button>
+        <button onclick="setGrupo('triceps')">Tríceps</button>
+        <button onclick="setGrupo('perna')">Perna</button>
+        <button onclick="setGrupo('ombro')">Ombro</button>
+        <button onclick="setGrupo('peso_livre')">Peso Livre</button>
+        <button onclick="toggleFav()" id="btn-fav">⭐ Fav</button>
+    </div>
+
+    <div class="container" id="lista"></div>
+    <div id="sentinel" onclick="renderMais()">Carregar mais exercícios...</div>
+</div>
+
+<script>
+const _supabase = supabase.createClient('https://bhopmzhxhalotusoifiq.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJob3Btemh4aGFsb3R1c29pZmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDExMTgsImV4cCI6MjA5MDMxNzExOH0.TJQ2jN3QDzciqTbA0AXIBPiJ5ymIQp7j2i1-MlucZ8k');
+
+let usuario = "convidado";
+let grupoAtual = "todos";
+let mostrarFav = false;
+let filtrados = [];
+let idxAtual = 0;
+let charts = {};
+let timers = {};
+
+const maquinas = [
+
+
+
+/* ========= PEITO ========= */
+
+{nome:"Supino Reto Máquina",grupo:"peito"},
+
+{nome:"Supino Inclinado Máquina",grupo:"peito"},
+
+{nome:"Supino Declinado Máquina",grupo:"peito"},
+
+{nome:"Supino Articulado",grupo:"peito"},
+
+{nome:"Supino Unilateral Máquina",grupo:"peito"},
+
+{nome:"Chest Press",grupo:"peito"},
+
+{nome:"Chest Press Inclinado",grupo:"peito"},
+
+{nome:"Chest Press Declinado",grupo:"peito"},
+
+{nome:"Iso Lateral Chest Press",grupo:"peito"},
+
+{nome:"Plate Loaded Chest Press",grupo:"peito"},
+
+{nome:"Peck Deck",grupo:"peito"},
+
+{nome:"Crucifixo Máquina",grupo:"peito"},
+
+{nome:"Crucifixo Inclinado Máquina",grupo:"peito"},
+
+{nome:"Crucifixo Declinado Máquina",grupo:"peito"},
+
+{nome:"Crossover Polia Alta",grupo:"peito"},
+
+{nome:"Crossover Polia Média",grupo:"peito"},
+
+{nome:"Crossover Polia Baixa",grupo:"peito"},
+
+{nome:"Press Horizontal Máquina",grupo:"peito"},
+
+{nome:"Press Vertical Máquina",grupo:"peito"},
+
+{nome:"Chest Fly Machine",grupo:"peito"},
+
+{nome:"Decline Press Machine",grupo:"peito"},
+
+{nome:"Incline Press Machine",grupo:"peito"},
+
+{nome:"Hammer Strength Chest Press",grupo:"peito"},
+
+{nome:"Hammer Strength Incline Press",grupo:"peito"},
+
+{nome:"Hammer Strength Decline Press",grupo:"peito"},
+
+{nome:"Supino com Barra",grupo:"peito"},
+
+{nome:"Supino Inclinado com Barra",grupo:"peito"},
+
+{nome:"Supino Declinado com Barra",grupo:"peito"},
+
+{nome:"Supino com Halter",grupo:"peito"},
+
+{nome:"Supino Inclinado com Halter",grupo:"peito"},
+
+{nome:"Supino Declinado com Halter",grupo:"peito"},
+
+{nome:"Crucifixo com Halter",grupo:"peito"},
+
+{nome:"Crucifixo Inclinado com Halter",grupo:"peito"},
+
+{nome:"Crucifixo Declinado com Halter",grupo:"peito"},
+
+
+
+/* ========= COSTAS ========= */
+
+{nome:"Puxada Alta",grupo:"costas"},
+
+{nome:"Puxada Frente",grupo:"costas"},
+
+{nome:"Puxada Neutra",grupo:"costas"},
+
+{nome:"Pulldown",grupo:"costas"},
+
+{nome:"Pulldown Articulado",grupo:"costas"},
+
+{nome:"Remada Máquina",grupo:"costas"},
+
+{nome:"Remada Baixa",grupo:"costas"},
+
+{nome:"Remada Alta Máquina",grupo:"costas"},
+
+{nome:"Remada Curvada Máquina",grupo:"costas"},
+
+{nome:"Remada Articulada",grupo:"costas"},
+
+{nome:"Remada Unilateral Máquina",grupo:"costas"},
+
+{nome:"Remada Cavalinho Máquina",grupo:"costas"},
+
+{nome:"Pullover Máquina",grupo:"costas"},
+
+{nome:"High Row Máquina",grupo:"costas"},
+
+{nome:"Low Row Máquina",grupo:"costas"},
+
+{nome:"Lat Pulldown Wide Grip",grupo:"costas"},
+
+{nome:"Lat Pulldown Close Grip",grupo:"costas"},
+
+{nome:"Lat Pulldown Reverse Grip",grupo:"costas"},
+
+{nome:"Seated Row Machine",grupo:"costas"},
+
+{nome:"Iso Lateral Row",grupo:"costas"},
+
+{nome:"Hammer Strength Row",grupo:"costas"},
+
+{nome:"Hammer Strength High Row",grupo:"costas"},
+
+{nome:"Barra Fixa",grupo:"costas"},
+
+{nome:"Barra Fixa Neutra",grupo:"costas"},
+
+{nome:"Barra Fixa Supinada",grupo:"costas"},
+
+{nome:"Remada Curvada Barra",grupo:"costas"},
+
+{nome:"Remada com Halter",grupo:"costas"},
+
+{nome:"Remada Unilateral Halter",grupo:"costas"},
+
+
+
+/* ========= BÍCEPS ========= */
+
+{nome:"Rosca Direta Barra",grupo:"biceps"},
+
+{nome:"Rosca Alternada Halter",grupo:"biceps"},
+
+{nome:"Rosca Martelo",grupo:"biceps"},
+
+{nome:"Rosca Concentrada",grupo:"biceps"},
+
+{nome:"Rosca Scott Máquina",grupo:"biceps"},
+
+{nome:"Rosca Scott Barra",grupo:"biceps"},
+
+{nome:"Rosca Cabo",grupo:"biceps"},
+
+{nome:"Rosca Inversa",grupo:"biceps"},
+
+{nome:"Rosca Máquina",grupo:"biceps"},
+
+{nome:"Cable Curl Machine",grupo:"biceps"},
+
+{nome:"Biceps Curl",grupo:"biceps"},
+
+{nome:"Biceps Curl Unilateral",grupo:"biceps"},
+
+
+
+/* ========= TRÍCEPS ========= */
+
+{nome:"Tríceps Polia",grupo:"triceps"},
+
+{nome:"Tríceps Corda",grupo:"triceps"},
+
+{nome:"Tríceps Barra Reta",grupo:"triceps"},
+
+{nome:"Tríceps Testa",grupo:"triceps"},
+
+{nome:"Tríceps Testa Halter",grupo:"triceps"},
+
+{nome:"Mergulho Banco",grupo:"triceps"},
+
+{nome:"Mergulho Máquina",grupo:"triceps"},
+
+{nome:"Paralela",grupo:"triceps"},
+
+{nome:"Extensão Tríceps Máquina",grupo:"triceps"},
+
+
+
+/* ========= PERNA ========= */
+
+{nome:"Leg Press 45°",grupo:"perna"},
+
+{nome:"Leg Press Horizontal",grupo:"perna"},
+
+{nome:"Leg Press Vertical",grupo:"perna"},
+
+{nome:"Leg Press Unilateral",grupo:"perna"},
+
+{nome:"Hack Machine",grupo:"perna"},
+
+{nome:"Hack Invertido",grupo:"perna"},
+
+{nome:"Smith Machine",grupo:"perna"},
+
+{nome:"Agachamento Livre",grupo:"perna"},
+
+{nome:"Agachamento Frontal",grupo:"perna"},
+
+{nome:"Agachamento Smith",grupo:"perna"},
+
+{nome:"Cadeira Extensora",grupo:"perna"},
+
+{nome:"Extensora Unilateral",grupo:"perna"},
+
+{nome:"Cadeira Flexora",grupo:"perna"},
+
+{nome:"Mesa Flexora",grupo:"perna"},
+
+{nome:"Flexora Unilateral",grupo:"perna"},
+
+{nome:"Stiff",grupo:"perna"},
+
+{nome:"Levantamento Terra",grupo:"perna"},
+
+{nome:"Terra Romeno",grupo:"perna"},
+
+{nome:"Glúteo Máquina",grupo:"perna"},
+
+{nome:"Glúteo Coice Máquina",grupo:"perna"},
+
+{nome:"Hip Thrust",grupo:"perna"},
+
+{nome:"Abdutora",grupo:"perna"},
+
+{nome:"Adutora",grupo:"perna"},
+
+{nome:"Panturrilha em Pé",grupo:"perna"},
+
+{nome:"Panturrilha Sentado",grupo:"perna"},
+
+{nome:"Panturrilha no Leg Press",grupo:"perna"},
+
+{nome:"Leg Curl Máquina",grupo:"perna"},
+
+{nome:"Leg Curl Deitado",grupo:"perna"},
+
+{nome:"Leg Curl Sentado",grupo:"perna"},
+
+{nome:"Leg Curl em Pé",grupo:"perna"},
+
+{nome:"Leg Curl Unilateral",grupo:"perna"},
+
+{nome:"Leg Curl Alternado",grupo:"perna"},
+
+{nome:"Leg Curl com Bola",grupo:"perna"},
+
+{nome:"Leg Curl Cabo",grupo:"perna"},
+
+{nome:"Leg Curl Isométrico",grupo:"perna"},
+
+{nome:"Leg Curl Excêntrico",grupo:"perna"},
+
+
+
+/* ========= OMBRO ========= */
+
+{nome:"Desenvolvimento Barra",grupo:"ombro"},
+
+{nome:"Desenvolvimento Halter",grupo:"ombro"},
+
+{nome:"Desenvolvimento Máquina",grupo:"ombro"},
+
+{nome:"Elevação Lateral Halter",grupo:"ombro"},
+
+{nome:"Elevação Lateral Máquina",grupo:"ombro"},
+
+{nome:"Elevação Frontal Halter",grupo:"ombro"},
+
+{nome:"Elevação Frontal Barra",grupo:"ombro"},
+
+{nome:"Crucifixo Inverso",grupo:"ombro"},
+
+{nome:"Peck Deck Inverso",grupo:"ombro"},
+
+{nome:"Encolhimento Ombro",grupo:"ombro"},
+
+
+
+/* ========= CARDIO ========= */
+
+{nome:"Esteira",grupo:"cardio"},
+
+{nome:"Bicicleta",grupo:"cardio"},
+
+{nome:"Bike Spinning",grupo:"cardio"},
+
+{nome:"Elíptico",grupo:"cardio"},
+
+{nome:"Escada",grupo:"cardio"},
+
+{nome:"Remo",grupo:"cardio"},
+
+
+
+/* ========= PEITO EXTRA ========= */
+
+{nome:"Supino Declinado Barra Livre",grupo:"peito"},
+
+{nome:"Supino Inclinado Smith",grupo:"peito"},
+
+{nome:"Supino Declinado Smith",grupo:"peito"},
+
+{nome:"Supino Reto Smith",grupo:"peito"},
+
+{nome:"Chest Press Hammer Plate",grupo:"peito"},
+
+{nome:"Chest Press Iso Lateral Wide",grupo:"peito"},
+
+{nome:"Chest Press Narrow Grip",grupo:"peito"},
+
+{nome:"Crucifixo Cabo Alto",grupo:"peito"},
+
+{nome:"Crucifixo Cabo Baixo",grupo:"peito"},
+
+{nome:"Crucifixo Cabo Cruzado",grupo:"peito"},
+
+{nome:"Fly Inclinado Cabo",grupo:"peito"},
+
+{nome:"Fly Declinado Cabo",grupo:"peito"},
+
+{nome:"Press Máquina Vertical Fechado",grupo:"peito"},
+
+{nome:"Press Máquina Aberto",grupo:"peito"},
+
+
+
+/* ========= COSTAS EXTRA ========= */
+
+{nome:"Pulldown Triângulo",grupo:"costas"},
+
+{nome:"Pulldown Barra Reta",grupo:"costas"},
+
+{nome:"Pulldown Barra Curva",grupo:"costas"},
+
+{nome:"Remada Triângulo",grupo:"costas"},
+
+{nome:"Remada Barra T",grupo:"costas"},
+
+{nome:"Remada T Bar Máquina",grupo:"costas"},
+
+{nome:"Remada Invertida",grupo:"costas"},
+
+{nome:"Remada Sentado Cabo",grupo:"costas"},
+
+{nome:"Remada Alta Cabo",grupo:"costas"},
+
+{nome:"Face Pull",grupo:"costas"},
+
+{nome:"Face Pull Corda",grupo:"costas"},
+
+{nome:"Pullover Cabo",grupo:"costas"},
+
+{nome:"Pullover Halter",grupo:"costas"},
+
+{nome:"Straight Arm Pulldown",grupo:"costas"},
+
+{nome:"High Row Plate Loaded",grupo:"costas"},
+
+{nome:"Low Row Plate Loaded",grupo:"costas"},
+
+
+
+/* ========= BÍCEPS EXTRA ========= */
+
+{nome:"Rosca 21",grupo:"biceps"},
+
+{nome:"Rosca Spider",grupo:"biceps"},
+
+{nome:"Rosca Inclinada Halter",grupo:"biceps"},
+
+{nome:"Rosca Cabo Unilateral",grupo:"biceps"},
+
+{nome:"Rosca Barra EZ",grupo:"biceps"},
+
+{nome:"Rosca Alternada Sentado",grupo:"biceps"},
+
+{nome:"Rosca Concentrada Banco",grupo:"biceps"},
+
+{nome:"Rosca Cross Cable",grupo:"biceps"},
+
+{nome:"Rosca Punho",grupo:"biceps"},
+
+{nome:"Rosca Punho Inversa",grupo:"biceps"},
+
+
+
+/* ========= TRÍCEPS EXTRA ========= */
+
+{nome:"Tríceps Francês Halter",grupo:"triceps"},
+
+{nome:"Tríceps Francês Barra",grupo:"triceps"},
+
+{nome:"Tríceps Banco",grupo:"triceps"},
+
+{nome:"Tríceps Coice Halter",grupo:"triceps"},
+
+{nome:"Tríceps Coice Cabo",grupo:"triceps"},
+
+{nome:"Extensão Unilateral Tríceps",grupo:"triceps"},
+
+{nome:"Extensão Overhead Cabo",grupo:"triceps"},
+
+{nome:"Extensão Overhead Halter",grupo:"triceps"},
+
+{nome:"Pushdown Inverso",grupo:"triceps"},
+
+{nome:"Pushdown Pegada Aberta",grupo:"triceps"},
+
+
+
+/* ========= PERNA EXTRA ========= */
+
+{nome:"Agachamento Búlgaro",grupo:"perna"},
+
+{nome:"Agachamento Sumô",grupo:"perna"},
+
+{nome:"Agachamento Hack Livre",grupo:"perna"},
+
+{nome:"Agachamento Caixa",grupo:"perna"},
+
+{nome:"Passada Andando",grupo:"perna"},
+
+{nome:"Passada no Smith",grupo:"perna"},
+
+{nome:"Afundo com Halter",grupo:"perna"},
+
+{nome:"Step Up",grupo:"perna"},
+
+{nome:"Step Up Halter",grupo:"perna"},
+
+{nome:"Stiff Halter",grupo:"perna"},
+
+{nome:"Stiff Barra",grupo:"perna"},
+
+{nome:"Glute Bridge",grupo:"perna"},
+
+{nome:"Hip Thrust Barra",grupo:"perna"},
+
+{nome:"Hip Thrust Smith",grupo:"perna"},
+
+{nome:"Panturrilha Smith",grupo:"perna"},
+
+{nome:"Panturrilha Leg Press Unilateral",grupo:"perna"},
+
+{nome:"Panturrilha Donkey",grupo:"perna"},
+
+{nome:"Flexora em Pé",grupo:"perna"},
+
+{nome:"Extensora Drop Set",grupo:"perna"},
+
+{nome:"Cadeira Abdutora Unilateral",grupo:"perna"},
+
+
+
+/* ========= OMBRO EXTRA ========= */
+
+{nome:"Arnold Press",grupo:"ombro"},
+
+{nome:"Arnold Press Halter",grupo:"ombro"},
+
+{nome:"Elevação Lateral Cabo",grupo:"ombro"},
+
+{nome:"Elevação Frontal Cabo",grupo:"ombro"},
+
+{nome:"Elevação Frontal Disco",grupo:"ombro"},
+
+{nome:"Elevação Lateral Inclinado",grupo:"ombro"},
+
+{nome:"Crucifixo Inverso Cabo",grupo:"ombro"},
+
+{nome:"Rear Delt Halter",grupo:"ombro"},
+
+{nome:"Shoulder Press Plate Loaded",grupo:"ombro"},
+
+{nome:"Desenvolvimento Smith",grupo:"ombro"},
+
+
+
+/* ========= PESO LIVRE EXTRA ========= */
+
+{nome:"Kettlebell Swing",grupo:"peso_livre"},
+
+{nome:"Kettlebell Clean",grupo:"peso_livre"},
+
+{nome:"Kettlebell Snatch",grupo:"peso_livre"},
+
+{nome:"Farmer Walk",grupo:"peso_livre"},
+
+{nome:"Farmer Walk Pesado",grupo:"peso_livre"},
+
+{nome:"Burpee",grupo:"peso_livre"},
+
+{nome:"Burpee com Salto",grupo:"peso_livre"},
+
+{nome:"Flexão de Braço",grupo:"peso_livre"},
+
+{nome:"Flexão Declinado",grupo:"peso_livre"},
+
+{nome:"Flexão Inclinado",grupo:"peso_livre"},
+
+{nome:"Flexão Diamante",grupo:"peso_livre"},
+
+{nome:"Flexão Explosiva",grupo:"peso_livre"},
+
+{nome:"Prancha",grupo:"peso_livre"},
+
+{nome:"Prancha Lateral",grupo:"peso_livre"},
+
+{nome:"Abdominal Tradicional",grupo:"peso_livre"},
+
+{nome:"Abdominal Infra",grupo:"peso_livre"},
+
+{nome:"Abdominal Supra",grupo:"peso_livre"},
+
+{nome:"Abdominal Bicicleta",grupo:"peso_livre"},
+
+{nome:"Russian Twist",grupo:"peso_livre"},
+
+{nome:"Mountain Climber",grupo:"peso_livre"},
+
+
+
+/* ========= CARDIO EXTRA ========= */
+
+{nome:"Bike Horizontal",grupo:"cardio"},
+
+{nome:"Bike Vertical",grupo:"cardio"},
+
+{nome:"Air Bike",grupo:"cardio"},
+
+{nome:"Corrida na Esteira",grupo:"cardio"},
+
+{nome:"Caminhada Inclinado",grupo:"cardio"},
+
+{nome:"Sprint Esteira",grupo:"cardio"},
+
+{nome:"Escada Rápida",grupo:"cardio"},
+
+{nome:"Remo HIIT",grupo:"cardio"},
+
+{nome:"Elíptico Intervalado",grupo:"cardio"},
+
+{nome:"Pular Corda",grupo:"cardio"},
+
+
+
+/* ========= PEITO PRO / VARIAÇÕES RARAS ========= */
+
+{nome:"Chest Press Convergente",grupo:"peito"},
+
+{nome:"Chest Press Divergente",grupo:"peito"},
+
+{nome:"Press Inclinado Convergente",grupo:"peito"},
+
+{nome:"Press Declinado Convergente",grupo:"peito"},
+
+{nome:"Fly Máquina Convergente",grupo:"peito"},
+
+{nome:"Fly Máquina Divergente",grupo:"peito"},
+
+{nome:"Crossover Unilateral",grupo:"peito"},
+
+{nome:"Crossover Alternado",grupo:"peito"},
+
+{nome:"Press Cabo Unilateral",grupo:"peito"},
+
+{nome:"Press Cabo Alternado",grupo:"peito"},
+
+{nome:"Supino com Corrente",grupo:"peito"},
+
+{nome:"Supino com Elástico",grupo:"peito"},
+
+
+
+/* ========= COSTAS PRO ========= */
+
+{nome:"Remada Gironda",grupo:"costas"},
+
+{nome:"Remada Meadows",grupo:"costas"},
+
+{nome:"Pulldown Unilateral",grupo:"costas"},
+
+{nome:"Pulldown Alternado",grupo:"costas"},
+
+{nome:"Pulldown com Isometria",grupo:"costas"},
+
+{nome:"Remada com Isometria",grupo:"costas"},
+
+{nome:"High Row Unilateral",grupo:"costas"},
+
+{nome:"Low Row Unilateral",grupo:"costas"},
+
+{nome:"Remada Invertida Suspensa",grupo:"costas"},
+
+{nome:"Remada com Corrente",grupo:"costas"},
+
+
+
+/* ========= BÍCEPS PRO ========= */
+
+{nome:"Rosca com Isometria",grupo:"biceps"},
+
+{nome:"Rosca 21 Máquina",grupo:"biceps"},
+
+{nome:"Rosca Drop Set",grupo:"biceps"},
+
+{nome:"Rosca Rest Pause",grupo:"biceps"},
+
+{nome:"Rosca Negativa",grupo:"biceps"},
+
+{nome:"Rosca Explosiva",grupo:"biceps"},
+
+{nome:"Rosca Cross Body",grupo:"biceps"},
+
+{nome:"Rosca Alternada Lenta",grupo:"biceps"},
+
+
+
+/* ========= TRÍCEPS PRO ========= */
+
+{nome:"Tríceps Drop Set",grupo:"triceps"},
+
+{nome:"Tríceps Rest Pause",grupo:"triceps"},
+
+{nome:"Tríceps Negativo",grupo:"triceps"},
+
+{nome:"Tríceps Explosivo",grupo:"triceps"},
+
+{nome:"Extensão Unilateral Lenta",grupo:"triceps"},
+
+{nome:"Pushdown Isométrico",grupo:"triceps"},
+
+{nome:"Tríceps Paralela Peso Extra",grupo:"triceps"},
+
+
+
+/* ========= PERNA PRO ========= */
+
+{nome:"Agachamento com Corrente",grupo:"perna"},
+
+{nome:"Agachamento com Elástico",grupo:"perna"},
+
+{nome:"Agachamento Isométrico",grupo:"perna"},
+
+{nome:"Agachamento Explosivo",grupo:"perna"},
+
+{nome:"Leg Press Drop Set",grupo:"perna"},
+
+{nome:"Leg Press Rest Pause",grupo:"perna"},
+
+{nome:"Hack Machine Lenta",grupo:"perna"},
+
+{nome:"Stiff Isométrico",grupo:"perna"},
+
+{nome:"Terra Explosivo",grupo:"perna"},
+
+{nome:"Terra com Corrente",grupo:"perna"},
+
+{nome:"Hip Thrust Isométrico",grupo:"perna"},
+
+{nome:"Glute Bridge Unilateral",grupo:"perna"},
+
+{nome:"Panturrilha Explosiva",grupo:"perna"},
+
+{nome:"Panturrilha Isométrica",grupo:"perna"},
+
+
+
+/* ========= OMBRO PRO ========= */
+
+{nome:"Desenvolvimento com Corrente",grupo:"ombro"},
+
+{nome:"Desenvolvimento com Elástico",grupo:"ombro"},
+
+{nome:"Elevação Lateral Drop Set",grupo:"ombro"},
+
+{nome:"Elevação Lateral Isométrica",grupo:"ombro"},
+
+{nome:"Elevação Frontal Explosiva",grupo:"ombro"},
+
+{nome:"Rear Delt Drop Set",grupo:"ombro"},
+
+{nome:"Rear Delt Isométrico",grupo:"ombro"},
+
+
+
+/* ========= FUNCIONAL / CROSSFIT ========= */
+
+{nome:"Wall Ball",grupo:"peso_livre"},
+
+{nome:"Box Jump",grupo:"peso_livre"},
+
+{nome:"Box Jump Alto",grupo:"peso_livre"},
+
+{nome:"Box Jump Lateral",grupo:"peso_livre"},
+
+{nome:"Sled Push",grupo:"peso_livre"},
+
+{nome:"Sled Pull",grupo:"peso_livre"},
+
+{nome:"Battle Rope",grupo:"peso_livre"},
+
+{nome:"Battle Rope Alternado",grupo:"peso_livre"},
+
+{nome:"Battle Rope Explosivo",grupo:"peso_livre"},
+
+{nome:"Tire Flip",grupo:"peso_livre"},
+
+{nome:"Medicine Ball Slam",grupo:"peso_livre"},
+
+{nome:"Medicine Ball Throw",grupo:"peso_livre"},
+
+{nome:"Agility Ladder",grupo:"peso_livre"},
+
+{nome:"Sprint Curto",grupo:"peso_livre"},
+
+{nome:"Sprint Longo",grupo:"peso_livre"},
+
+
+
+/* ========= CORE ABSURDO ========= */
+
+{nome:"Dragon Flag",grupo:"peso_livre"},
+
+{nome:"Dragon Flag Negativo",grupo:"peso_livre"},
+
+{nome:"L-Sit",grupo:"peso_livre"},
+
+{nome:"L-Sit Paralela",grupo:"peso_livre"},
+
+{nome:"Hanging Leg Raise",grupo:"peso_livre"},
+
+{nome:"Hanging Knee Raise",grupo:"peso_livre"},
+
+{nome:"Toes to Bar",grupo:"peso_livre"},
+
+{nome:"Ab Wheel",grupo:"peso_livre"},
+
+{nome:"Ab Wheel Avançado",grupo:"peso_livre"},
+
+{nome:"Plank com Peso",grupo:"peso_livre"},
+
+{nome:"Plank Explosiva",grupo:"peso_livre"},
+
+
+
+/* ========= CARDIO HARDCORE ========= */
+
+{nome:"HIIT Esteira",grupo:"cardio"},
+
+{nome:"HIIT Bike",grupo:"cardio"},
+
+{nome:"HIIT Remo",grupo:"cardio"},
+
+{nome:"Corrida Intervalada",grupo:"cardio"},
+
+{nome:"Corrida Resistência",grupo:"cardio"},
+
+{nome:"Escada HIIT",grupo:"cardio"},
+
+{nome:"Bike Sprint",grupo:"cardio"},
+
+{nome:"Elíptico Sprint",grupo:"cardio"},
+
+
+
+/* ========= EXTRA FINAL PRA FECHAR 500+ ========= */
+
+{nome:"Treino Funcional Livre",grupo:"peso_livre"},
+
+{nome:"Circuito Corpo Inteiro",grupo:"peso_livre"},
+
+{nome:"Treino HIIT Corpo Inteiro",grupo:"peso_livre"},
+
+{nome:"Treino Resistência Total",grupo:"peso_livre"},
+
+{nome:"Treino Explosivo Completo",grupo:"peso_livre"},
+
+/* ========= PEITO MÁQUINAS NOVAS ========= */
+
+{nome:"Smith Inclinado",grupo:"peito"},
+
+{nome:"Smith Declinado",grupo:"peito"},
+
+{nome:"Smith Reto",grupo:"peito"},
+
+{nome:"Pec Deck Reverse Grip",grupo:"peito"},
+
+{nome:"Crossover Multi-Ajustável",grupo:"peito"},
+
+{nome:"Crossover 4 Polias",grupo:"peito"},
+
+
+
+/* ========= COSTAS MÁQUINAS NOVAS ========= */
+
+{nome:"Pulldown Machine Isolada",grupo:"costas"},
+
+{nome:"Remada Convergente",grupo:"costas"},
+
+{nome:"Remada Divergente",grupo:"costas"},
+
+{nome:"Pullover Machine Articulada",grupo:"costas"},
+
+{nome:"High Row Convergente",grupo:"costas"},
+
+{nome:"Low Row Divergente",grupo:"costas"},
+
+{nome:"Remada Machine com Pegada Alternada",grupo:"costas"},
+
+
+
+/* ========= BÍCEPS MÁQUINAS NOVAS ========= */
+
+{nome:"Curl Máquina Articulada",grupo:"biceps"},
+
+{nome:"Curl Scott Articulado",grupo:"biceps"},
+
+{nome:"Curl Unilateral Máquina",grupo:"biceps"},
+
+{nome:"Cable Preacher Curl",grupo:"biceps"},
+
+{nome:"Hammer Curl Máquina",grupo:"biceps"},
+
+
+
+/* ========= TRÍCEPS MÁQUINAS NOVAS ========= */
+
+{nome:"Tríceps Pushdown Multi-Ajustável",grupo:"triceps"},
+
+{nome:"Tríceps Extensão Articulada",grupo:"triceps"},
+
+{nome:"Tríceps Máquina Unilateral",grupo:"triceps"},
+
+{nome:"Tríceps Overhead Máquina",grupo:"triceps"},
+
+{nome:"Tríceps Iso Lateral",grupo:"triceps"},
+
+
+
+/* ========= PERNA MÁQUINAS NOVAS ========= */
+
+{nome:"Leg Press Hack",grupo:"perna"},
+
+{nome:"Leg Press Vertical Multi-Ajustável",grupo:"perna"},
+
+{nome:"Extensora Articulada",grupo:"perna"},
+
+{nome:"Flexora Articulada",grupo:"perna"},
+
+{nome:"Glúteo 4 Apoios Articulado",grupo:"perna"},
+
+{nome:"Panturrilha Multi-Ajustável",grupo:"perna"},
+
+{nome:"Adutora/Abdutora Multi-Ajustável",grupo:"perna"},
+
+{nome:"Hack Agachamento Smith",grupo:"perna"},
+
+{nome:"Step Máquina Guiada",grupo:"perna"},
+
+
+
+/* ========= OMBRO MÁQUINAS NOVAS ========= */
+
+{nome:"Shoulder Press Articulada",grupo:"ombro"},
+
+{nome:"Elevação Lateral Articulada",grupo:"ombro"},
+
+{nome:"Elevação Frontal Articulada",grupo:"ombro"},
+
+{nome:"Crucifixo Inverso Articulado",grupo:"ombro"},
+
+{nome:"Trap Machine (Encolhimento Guiado)",grupo:"ombro"},
+
+{nome:"Rear Delt Plate Loaded",grupo:"ombro"},
+
+
+
+/* ========= CARDIO MÁQUINAS NOVAS ========= */
+
+{nome:"Escada StepMill",grupo:"cardio"},
+
+{nome:"Remo Indoor Articulado",grupo:"cardio"},
+
+{nome:"Esteira Inclinação Automática",grupo:"cardio"},
+
+{nome:"Bike Horizontal Plate Loaded",grupo:"cardio"},
+
+{nome:"Air Runner",grupo:"cardio"},
+
+{nome:"Ski Erg",grupo:"cardio"},
+
+{nome:"Jacobs Ladder",grupo:"cardio"},
+{nome:"Press Máquina Unilateral",grupo:"peito"},
+{nome:"Press Máquina Alternado",grupo:"peito"},
+{nome:"Press Máquina Isométrico",grupo:"peito"},
+{nome:"Press Máquina Explosivo",grupo:"peito"},
+{nome:"Press Máquina Drop Set",grupo:"peito"},
+{nome:"Press Máquina Rest Pause",grupo:"peito"},
+{nome:"Press Máquina Tempo Lento",grupo:"peito"},
+{nome:"Press Máquina Excêntrico",grupo:"peito"},
+{nome:"Press Máquina Concêntrico",grupo:"peito"},
+{nome:"Press Máquina Pausa",grupo:"peito"},
+{nome:"Press Máquina Parcial",grupo:"peito"},
+{nome:"Press Máquina Completo",grupo:"peito"},
+{nome:"Press Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Press Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Press Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Press Máquina Articulado",grupo:"peito"},
+{nome:"Press Máquina Guiado",grupo:"peito"},
+{nome:"Press Máquina Livre",grupo:"peito"},
+{nome:"Press Máquina Avançado",grupo:"peito"},
+{nome:"Press Máquina Controle Total",grupo:"peito"},
+{nome:"Fly Máquina Unilateral",grupo:"peito"},
+{nome:"Fly Máquina Alternado",grupo:"peito"},
+{nome:"Fly Máquina Isométrico",grupo:"peito"},
+{nome:"Fly Máquina Explosivo",grupo:"peito"},
+{nome:"Fly Máquina Drop Set",grupo:"peito"},
+{nome:"Fly Máquina Rest Pause",grupo:"peito"},
+{nome:"Fly Máquina Tempo Lento",grupo:"peito"},
+{nome:"Fly Máquina Excêntrico",grupo:"peito"},
+{nome:"Fly Máquina Concêntrico",grupo:"peito"},
+{nome:"Fly Máquina Pausa",grupo:"peito"},
+{nome:"Fly Máquina Parcial",grupo:"peito"},
+{nome:"Fly Máquina Completo",grupo:"peito"},
+{nome:"Fly Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Fly Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Fly Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Fly Máquina Articulado",grupo:"peito"},
+{nome:"Fly Máquina Guiado",grupo:"peito"},
+{nome:"Fly Máquina Livre",grupo:"peito"},
+{nome:"Fly Máquina Avançado",grupo:"peito"},
+{nome:"Fly Máquina Controle Total",grupo:"peito"},
+{nome:"Crossover Unilateral",grupo:"peito"},
+{nome:"Crossover Alternado",grupo:"peito"},
+{nome:"Crossover Isométrico",grupo:"peito"},
+{nome:"Crossover Explosivo",grupo:"peito"},
+{nome:"Crossover Drop Set",grupo:"peito"},
+{nome:"Crossover Rest Pause",grupo:"peito"},
+{nome:"Crossover Tempo Lento",grupo:"peito"},
+{nome:"Crossover Excêntrico",grupo:"peito"},
+{nome:"Crossover Concêntrico",grupo:"peito"},
+{nome:"Crossover Pausa",grupo:"peito"},
+{nome:"Crossover Parcial",grupo:"peito"},
+{nome:"Crossover Completo",grupo:"peito"},
+{nome:"Crossover Pegada Neutra",grupo:"peito"},
+{nome:"Crossover Pegada Aberta",grupo:"peito"},
+{nome:"Crossover Pegada Fechada",grupo:"peito"},
+{nome:"Crossover Articulado",grupo:"peito"},
+{nome:"Crossover Guiado",grupo:"peito"},
+{nome:"Crossover Livre",grupo:"peito"},
+{nome:"Crossover Avançado",grupo:"peito"},
+{nome:"Crossover Controle Total",grupo:"peito"},
+{nome:"Pulldown Unilateral",grupo:"peito"},
+{nome:"Pulldown Alternado",grupo:"peito"},
+{nome:"Pulldown Isométrico",grupo:"peito"},
+{nome:"Pulldown Explosivo",grupo:"peito"},
+{nome:"Pulldown Drop Set",grupo:"peito"},
+{nome:"Pulldown Rest Pause",grupo:"peito"},
+{nome:"Pulldown Tempo Lento",grupo:"peito"},
+{nome:"Pulldown Excêntrico",grupo:"peito"},
+{nome:"Pulldown Concêntrico",grupo:"peito"},
+{nome:"Pulldown Pausa",grupo:"peito"},
+{nome:"Pulldown Parcial",grupo:"peito"},
+{nome:"Pulldown Completo",grupo:"peito"},
+{nome:"Pulldown Pegada Neutra",grupo:"peito"},
+{nome:"Pulldown Pegada Aberta",grupo:"peito"},
+{nome:"Pulldown Pegada Fechada",grupo:"peito"},
+{nome:"Pulldown Articulado",grupo:"peito"},
+{nome:"Pulldown Guiado",grupo:"peito"},
+{nome:"Pulldown Livre",grupo:"peito"},
+{nome:"Pulldown Avançado",grupo:"peito"},
+{nome:"Pulldown Controle Total",grupo:"peito"},
+{nome:"Remada Máquina Unilateral",grupo:"peito"},
+{nome:"Remada Máquina Alternado",grupo:"peito"},
+{nome:"Remada Máquina Isométrico",grupo:"peito"},
+{nome:"Remada Máquina Explosivo",grupo:"peito"},
+{nome:"Remada Máquina Drop Set",grupo:"peito"},
+{nome:"Remada Máquina Rest Pause",grupo:"peito"},
+{nome:"Remada Máquina Tempo Lento",grupo:"peito"},
+{nome:"Remada Máquina Excêntrico",grupo:"peito"},
+{nome:"Remada Máquina Concêntrico",grupo:"peito"},
+{nome:"Remada Máquina Pausa",grupo:"peito"},
+{nome:"Remada Máquina Parcial",grupo:"peito"},
+{nome:"Remada Máquina Completo",grupo:"peito"},
+{nome:"Remada Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Remada Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Remada Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Remada Máquina Articulado",grupo:"peito"},
+{nome:"Remada Máquina Guiado",grupo:"peito"},
+{nome:"Remada Máquina Livre",grupo:"peito"},
+{nome:"Remada Máquina Avançado",grupo:"peito"},
+{nome:"Remada Máquina Controle Total",grupo:"peito"},
+{nome:"Curl Máquina Unilateral",grupo:"peito"},
+{nome:"Curl Máquina Alternado",grupo:"peito"},
+{nome:"Curl Máquina Isométrico",grupo:"peito"},
+{nome:"Curl Máquina Explosivo",grupo:"peito"},
+{nome:"Curl Máquina Drop Set",grupo:"peito"},
+{nome:"Curl Máquina Rest Pause",grupo:"peito"},
+{nome:"Curl Máquina Tempo Lento",grupo:"peito"},
+{nome:"Curl Máquina Excêntrico",grupo:"peito"},
+{nome:"Curl Máquina Concêntrico",grupo:"peito"},
+{nome:"Curl Máquina Pausa",grupo:"peito"},
+{nome:"Curl Máquina Parcial",grupo:"peito"},
+{nome:"Curl Máquina Completo",grupo:"peito"},
+{nome:"Curl Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Curl Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Curl Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Curl Máquina Articulado",grupo:"peito"},
+{nome:"Curl Máquina Guiado",grupo:"peito"},
+{nome:"Curl Máquina Livre",grupo:"peito"},
+{nome:"Curl Máquina Avançado",grupo:"peito"},
+{nome:"Curl Máquina Controle Total",grupo:"peito"},
+{nome:"Extensão Máquina Unilateral",grupo:"peito"},
+{nome:"Extensão Máquina Alternado",grupo:"peito"},
+{nome:"Extensão Máquina Isométrico",grupo:"peito"},
+{nome:"Extensão Máquina Explosivo",grupo:"peito"},
+{nome:"Extensão Máquina Drop Set",grupo:"peito"},
+{nome:"Extensão Máquina Rest Pause",grupo:"peito"},
+{nome:"Extensão Máquina Tempo Lento",grupo:"peito"},
+{nome:"Extensão Máquina Excêntrico",grupo:"peito"},
+{nome:"Extensão Máquina Concêntrico",grupo:"peito"},
+{nome:"Extensão Máquina Pausa",grupo:"peito"},
+{nome:"Extensão Máquina Parcial",grupo:"peito"},
+{nome:"Extensão Máquina Completo",grupo:"peito"},
+{nome:"Extensão Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Extensão Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Extensão Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Extensão Máquina Articulado",grupo:"peito"},
+{nome:"Extensão Máquina Guiado",grupo:"peito"},
+{nome:"Extensão Máquina Livre",grupo:"peito"},
+{nome:"Extensão Máquina Avançado",grupo:"peito"},
+{nome:"Extensão Máquina Controle Total",grupo:"peito"},
+{nome:"Leg Press Unilateral",grupo:"peito"},
+{nome:"Leg Press Alternado",grupo:"peito"},
+{nome:"Leg Press Isométrico",grupo:"peito"},
+{nome:"Leg Press Explosivo",grupo:"peito"},
+{nome:"Leg Press Drop Set",grupo:"peito"},
+{nome:"Leg Press Rest Pause",grupo:"peito"},
+{nome:"Leg Press Tempo Lento",grupo:"peito"},
+{nome:"Leg Press Excêntrico",grupo:"peito"},
+{nome:"Leg Press Concêntrico",grupo:"peito"},
+{nome:"Leg Press Pausa",grupo:"peito"},
+{nome:"Leg Press Parcial",grupo:"peito"},
+{nome:"Leg Press Completo",grupo:"peito"},
+{nome:"Leg Press Pegada Neutra",grupo:"peito"},
+{nome:"Leg Press Pegada Aberta",grupo:"peito"},
+{nome:"Leg Press Pegada Fechada",grupo:"peito"},
+{nome:"Leg Press Articulado",grupo:"peito"},
+{nome:"Leg Press Guiado",grupo:"peito"},
+{nome:"Leg Press Livre",grupo:"peito"},
+{nome:"Leg Press Avançado",grupo:"peito"},
+{nome:"Leg Press Controle Total",grupo:"peito"},
+{nome:"Hack Machine Unilateral",grupo:"peito"},
+{nome:"Hack Machine Alternado",grupo:"peito"},
+{nome:"Hack Machine Isométrico",grupo:"peito"},
+{nome:"Hack Machine Explosivo",grupo:"peito"},
+{nome:"Hack Machine Drop Set",grupo:"peito"},
+{nome:"Hack Machine Rest Pause",grupo:"peito"},
+{nome:"Hack Machine Tempo Lento",grupo:"peito"},
+{nome:"Hack Machine Excêntrico",grupo:"peito"},
+{nome:"Hack Machine Concêntrico",grupo:"peito"},
+{nome:"Hack Machine Pausa",grupo:"peito"},
+{nome:"Hack Machine Parcial",grupo:"peito"},
+{nome:"Hack Machine Completo",grupo:"peito"},
+{nome:"Hack Machine Pegada Neutra",grupo:"peito"},
+{nome:"Hack Machine Pegada Aberta",grupo:"peito"},
+{nome:"Hack Machine Pegada Fechada",grupo:"peito"},
+{nome:"Hack Machine Articulado",grupo:"peito"},
+{nome:"Hack Machine Guiado",grupo:"peito"},
+{nome:"Hack Machine Livre",grupo:"peito"},
+{nome:"Hack Machine Avançado",grupo:"peito"},
+{nome:"Hack Machine Controle Total",grupo:"peito"},
+{nome:"Extensora Unilateral",grupo:"peito"},
+{nome:"Extensora Alternado",grupo:"peito"},
+{nome:"Extensora Isométrico",grupo:"peito"},
+{nome:"Extensora Explosivo",grupo:"peito"},
+{nome:"Extensora Drop Set",grupo:"peito"},
+{nome:"Extensora Rest Pause",grupo:"peito"},
+{nome:"Extensora Tempo Lento",grupo:"peito"},
+{nome:"Extensora Excêntrico",grupo:"peito"},
+{nome:"Extensora Concêntrico",grupo:"peito"},
+{nome:"Extensora Pausa",grupo:"peito"},
+{nome:"Extensora Parcial",grupo:"peito"},
+{nome:"Extensora Completo",grupo:"peito"},
+{nome:"Extensora Pegada Neutra",grupo:"peito"},
+{nome:"Extensora Pegada Aberta",grupo:"peito"},
+{nome:"Extensora Pegada Fechada",grupo:"peito"},
+{nome:"Extensora Articulado",grupo:"peito"},
+{nome:"Extensora Guiado",grupo:"peito"},
+{nome:"Extensora Livre",grupo:"peito"},
+{nome:"Extensora Avançado",grupo:"peito"},
+{nome:"Extensora Controle Total",grupo:"peito"},
+{nome:"Flexora Unilateral",grupo:"peito"},
+{nome:"Flexora Alternado",grupo:"peito"},
+{nome:"Flexora Isométrico",grupo:"peito"},
+{nome:"Flexora Explosivo",grupo:"peito"},
+{nome:"Flexora Drop Set",grupo:"peito"},
+{nome:"Flexora Rest Pause",grupo:"peito"},
+{nome:"Flexora Tempo Lento",grupo:"peito"},
+{nome:"Flexora Excêntrico",grupo:"peito"},
+{nome:"Flexora Concêntrico",grupo:"peito"},
+{nome:"Flexora Pausa",grupo:"peito"},
+{nome:"Flexora Parcial",grupo:"peito"},
+{nome:"Flexora Completo",grupo:"peito"},
+{nome:"Flexora Pegada Neutra",grupo:"peito"},
+{nome:"Flexora Pegada Aberta",grupo:"peito"},
+{nome:"Flexora Pegada Fechada",grupo:"peito"},
+{nome:"Flexora Articulado",grupo:"peito"},
+{nome:"Flexora Guiado",grupo:"peito"},
+{nome:"Flexora Livre",grupo:"peito"},
+{nome:"Flexora Avançado",grupo:"peito"},
+{nome:"Flexora Controle Total",grupo:"peito"},
+{nome:"Glúteo Máquina Unilateral",grupo:"peito"},
+{nome:"Glúteo Máquina Alternado",grupo:"peito"},
+{nome:"Glúteo Máquina Isométrico",grupo:"peito"},
+{nome:"Glúteo Máquina Explosivo",grupo:"peito"},
+{nome:"Glúteo Máquina Drop Set",grupo:"peito"},
+{nome:"Glúteo Máquina Rest Pause",grupo:"peito"},
+{nome:"Glúteo Máquina Tempo Lento",grupo:"peito"},
+{nome:"Glúteo Máquina Excêntrico",grupo:"peito"},
+{nome:"Glúteo Máquina Concêntrico",grupo:"peito"},
+{nome:"Glúteo Máquina Pausa",grupo:"peito"},
+{nome:"Glúteo Máquina Parcial",grupo:"peito"},
+{nome:"Glúteo Máquina Completo",grupo:"peito"},
+{nome:"Glúteo Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Glúteo Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Glúteo Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Glúteo Máquina Articulado",grupo:"peito"},
+{nome:"Glúteo Máquina Guiado",grupo:"peito"},
+{nome:"Glúteo Máquina Livre",grupo:"peito"},
+{nome:"Glúteo Máquina Avançado",grupo:"peito"},
+{nome:"Glúteo Máquina Controle Total",grupo:"peito"},
+{nome:"Panturrilha Máquina Unilateral",grupo:"peito"},
+{nome:"Panturrilha Máquina Alternado",grupo:"peito"},
+{nome:"Panturrilha Máquina Isométrico",grupo:"peito"},
+{nome:"Panturrilha Máquina Explosivo",grupo:"peito"},
+{nome:"Panturrilha Máquina Drop Set",grupo:"peito"},
+{nome:"Panturrilha Máquina Rest Pause",grupo:"peito"},
+{nome:"Panturrilha Máquina Tempo Lento",grupo:"peito"},
+{nome:"Panturrilha Máquina Excêntrico",grupo:"peito"},
+{nome:"Panturrilha Máquina Concêntrico",grupo:"peito"},
+{nome:"Panturrilha Máquina Pausa",grupo:"peito"},
+{nome:"Panturrilha Máquina Parcial",grupo:"peito"},
+{nome:"Panturrilha Máquina Completo",grupo:"peito"},
+{nome:"Panturrilha Máquina Pegada Neutra",grupo:"peito"},
+{nome:"Panturrilha Máquina Pegada Aberta",grupo:"peito"},
+{nome:"Panturrilha Máquina Pegada Fechada",grupo:"peito"},
+{nome:"Panturrilha Máquina Articulado",grupo:"peito"},
+{nome:"Panturrilha Máquina Guiado",grupo:"peito"},
+{nome:"Panturrilha Máquina Livre",grupo:"peito"},
+{nome:"Panturrilha Máquina Avançado",grupo:"peito"},
+{nome:"Panturrilha Máquina Controle Total",grupo:"peito"},
+{nome:"Shoulder Press Unilateral",grupo:"peito"},
+{nome:"Shoulder Press Alternado",grupo:"peito"},
+{nome:"Shoulder Press Isométrico",grupo:"peito"},
+{nome:"Shoulder Press Explosivo",grupo:"peito"},
+{nome:"Shoulder Press Drop Set",grupo:"peito"},
+{nome:"Shoulder Press Rest Pause",grupo:"peito"},
+{nome:"Shoulder Press Tempo Lento",grupo:"peito"},
+{nome:"Shoulder Press Excêntrico",grupo:"peito"},
+{nome:"Shoulder Press Concêntrico",grupo:"peito"},
+{nome:"Shoulder Press Pausa",grupo:"peito"},
+{nome:"Shoulder Press Parcial",grupo:"peito"},
+{nome:"Shoulder Press Completo",grupo:"peito"},
+{nome:"Shoulder Press Pegada Neutra",grupo:"peito"},
+{nome:"Shoulder Press Pegada Aberta",grupo:"peito"},
+{nome:"Shoulder Press Pegada Fechada",grupo:"peito"},
+{nome:"Shoulder Press Articulado",grupo:"peito"},
+{nome:"Shoulder Press Guiado",grupo:"peito"},
+{nome:"Shoulder Press Livre",grupo:"peito"},
+{nome:"Shoulder Press Avançado",grupo:"peito"},
+{nome:"Shoulder Press Controle Total",grupo:"peito"},
+{nome:"Elevação Lateral Unilateral",grupo:"peito"},
+{nome:"Elevação Lateral Alternado",grupo:"peito"},
+{nome:"Elevação Lateral Isométrico",grupo:"peito"},
+{nome:"Elevação Lateral Explosivo",grupo:"peito"},
+{nome:"Elevação Lateral Drop Set",grupo:"peito"},
+{nome:"Elevação Lateral Rest Pause",grupo:"peito"},
+{nome:"Elevação Lateral Tempo Lento",grupo:"peito"},
+{nome:"Elevação Lateral Excêntrico",grupo:"peito"},
+{nome:"Elevação Lateral Concêntrico",grupo:"peito"},
+{nome:"Elevação Lateral Pausa",grupo:"peito"},
+{nome:"Elevação Lateral Parcial",grupo:"peito"},
+{nome:"Elevação Lateral Completo",grupo:"peito"},
+{nome:"Elevação Lateral Pegada Neutra",grupo:"peito"},
+{nome:"Elevação Lateral Pegada Aberta",grupo:"peito"},
+{nome:"Elevação Lateral Pegada Fechada",grupo:"peito"},
+{nome:"Elevação Lateral Articulado",grupo:"peito"},
+{nome:"Elevação Lateral Guiado",grupo:"peito"},
+{nome:"Elevação Lateral Livre",grupo:"peito"},
+{nome:"Elevação Lateral Avançado",grupo:"peito"},
+{nome:"Elevação Lateral Controle Total",grupo:"peito"},
+{nome:"Rear Delt Unilateral",grupo:"peito"},
+{nome:"Rear Delt Alternado",grupo:"peito"},
+{nome:"Rear Delt Isométrico",grupo:"peito"},
+{nome:"Rear Delt Explosivo",grupo:"peito"},
+{nome:"Rear Delt Drop Set",grupo:"peito"},
+{nome:"Rear Delt Rest Pause",grupo:"peito"},
+{nome:"Rear Delt Tempo Lento",grupo:"peito"},
+{nome:"Rear Delt Excêntrico",grupo:"peito"},
+{nome:"Rear Delt Concêntrico",grupo:"peito"},
+{nome:"Rear Delt Pausa",grupo:"peito"},
+{nome:"Rear Delt Parcial",grupo:"peito"},
+{nome:"Rear Delt Completo",grupo:"peito"},
+{nome:"Rear Delt Pegada Neutra",grupo:"peito"},
+{nome:"Rear Delt Pegada Aberta",grupo:"peito"},
+{nome:"Rear Delt Pegada Fechada",grupo:"peito"},
+{nome:"Rear Delt Articulado",grupo:"peito"},
+{nome:"Rear Delt Guiado",grupo:"peito"},
+{nome:"Rear Delt Livre",grupo:"peito"},
+{nome:"Rear Delt Avançado",grupo:"peito"},
+{nome:"Rear Delt Controle Total",grupo:"peito"},
+{nome:"Esteira Unilateral",grupo:"peito"},
+{nome:"Esteira Alternado",grupo:"peito"},
+{nome:"Esteira Isométrico",grupo:"peito"},
+{nome:"Esteira Explosivo",grupo:"peito"},
+{nome:"Esteira Drop Set",grupo:"peito"},
+{nome:"Esteira Rest Pause",grupo:"peito"},
+{nome:"Esteira Tempo Lento",grupo:"peito"},
+{nome:"Esteira Excêntrico",grupo:"peito"},
+{nome:"Esteira Concêntrico",grupo:"peito"},
+{nome:"Esteira Pausa",grupo:"peito"},
+{nome:"Esteira Parcial",grupo:"peito"},
+{nome:"Esteira Completo",grupo:"peito"},
+{nome:"Esteira Pegada Neutra",grupo:"peito"},
+{nome:"Esteira Pegada Aberta",grupo:"peito"},
+{nome:"Esteira Pegada Fechada",grupo:"peito"},
+{nome:"Esteira Articulado",grupo:"peito"},
+{nome:"Esteira Guiado",grupo:"peito"},
+{nome:"Esteira Livre",grupo:"peito"},
+{nome:"Esteira Avançado",grupo:"peito"},
+{nome:"Esteira Controle Total",grupo:"peito"},
+{nome:"Bike Unilateral",grupo:"peito"},
+{nome:"Bike Alternado",grupo:"peito"},
+{nome:"Bike Isométrico",grupo:"peito"},
+{nome:"Bike Explosivo",grupo:"peito"},
+{nome:"Bike Drop Set",grupo:"peito"},
+{nome:"Bike Rest Pause",grupo:"peito"},
+{nome:"Bike Tempo Lento",grupo:"peito"},
+{nome:"Bike Excêntrico",grupo:"peito"},
+{nome:"Bike Concêntrico",grupo:"peito"},
+{nome:"Bike Pausa",grupo:"peito"},
+{nome:"Bike Parcial",grupo:"peito"},
+{nome:"Bike Completo",grupo:"peito"},
+{nome:"Bike Pegada Neutra",grupo:"peito"},
+{nome:"Bike Pegada Aberta",grupo:"peito"},
+{nome:"Bike Pegada Fechada",grupo:"peito"},
+{nome:"Bike Articulado",grupo:"peito"},
+{nome:"Bike Guiado",grupo:"peito"},
+{nome:"Bike Livre",grupo:"peito"},
+{nome:"Bike Avançado",grupo:"peito"},
+{nome:"Bike Controle Total",grupo:"peito"},
+{nome:"Remo Unilateral",grupo:"peito"},
+{nome:"Remo Alternado",grupo:"peito"},
+{nome:"Remo Isométrico",grupo:"peito"},
+{nome:"Remo Explosivo",grupo:"peito"},
+{nome:"Remo Drop Set",grupo:"peito"},
+{nome:"Remo Rest Pause",grupo:"peito"},
+{nome:"Remo Tempo Lento",grupo:"peito"},
+{nome:"Remo Excêntrico",grupo:"peito"},
+{nome:"Remo Concêntrico",grupo:"peito"},
+{nome:"Remo Pausa",grupo:"peito"},
+{nome:"Remo Parcial",grupo:"peito"},
+{nome:"Remo Completo",grupo:"peito"},
+{nome:"Remo Pegada Neutra",grupo:"peito"},
+{nome:"Remo Pegada Aberta",grupo:"peito"},
+{nome:"Remo Pegada Fechada",grupo:"peito"},
+{nome:"Remo Articulado",grupo:"peito"},
+{nome:"Remo Guiado",grupo:"peito"},
+{nome:"Remo Livre",grupo:"peito"},
+{nome:"Remo Avançado",grupo:"peito"},
+{nome:"Remo Controle Total",grupo:"peito"},
+{nome:"Escada Unilateral",grupo:"peito"},
+{nome:"Escada Alternado",grupo:"peito"},
+{nome:"Escada Isométrico",grupo:"peito"},
+{nome:"Escada Explosivo",grupo:"peito"},
+{nome:"Escada Drop Set",grupo:"peito"},
+{nome:"Escada Rest Pause",grupo:"peito"},
+{nome:"Escada Tempo Lento",grupo:"peito"},
+{nome:"Escada Excêntrico",grupo:"peito"},
+{nome:"Escada Concêntrico",grupo:"peito"},
+{nome:"Escada Pausa",grupo:"peito"},
+{nome:"Escada Parcial",grupo:"peito"},
+{nome:"Escada Completo",grupo:"peito"},
+{nome:"Escada Pegada Neutra",grupo:"peito"},
+{nome:"Escada Pegada Aberta",grupo:"peito"},
+{nome:"Escada Pegada Fechada",grupo:"peito"},
+{nome:"Escada Articulado",grupo:"peito"},
+{nome:"Escada Guiado",grupo:"peito"},
+{nome:"Escada Livre",grupo:"peito"},
+{nome:"Escada Avançado",grupo:"peito"},
+{nome:"Escada Controle Total",grupo:"peito"},
+{nome:"Press Máquina Unilateral",grupo:"costas"},
+{nome:"Press Máquina Alternado",grupo:"costas"},
+{nome:"Press Máquina Isométrico",grupo:"costas"},
+{nome:"Press Máquina Explosivo",grupo:"costas"},
+{nome:"Press Máquina Drop Set",grupo:"costas"},
+{nome:"Press Máquina Rest Pause",grupo:"costas"},
+{nome:"Press Máquina Tempo Lento",grupo:"costas"},
+{nome:"Press Máquina Excêntrico",grupo:"costas"},
+{nome:"Press Máquina Concêntrico",grupo:"costas"},
+{nome:"Press Máquina Pausa",grupo:"costas"},
+{nome:"Press Máquina Parcial",grupo:"costas"},
+{nome:"Press Máquina Completo",grupo:"costas"},
+{nome:"Press Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Press Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Press Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Press Máquina Articulado",grupo:"costas"},
+{nome:"Press Máquina Guiado",grupo:"costas"},
+{nome:"Press Máquina Livre",grupo:"costas"},
+{nome:"Press Máquina Avançado",grupo:"costas"},
+{nome:"Press Máquina Controle Total",grupo:"costas"},
+{nome:"Fly Máquina Unilateral",grupo:"costas"},
+{nome:"Fly Máquina Alternado",grupo:"costas"},
+{nome:"Fly Máquina Isométrico",grupo:"costas"},
+{nome:"Fly Máquina Explosivo",grupo:"costas"},
+{nome:"Fly Máquina Drop Set",grupo:"costas"},
+{nome:"Fly Máquina Rest Pause",grupo:"costas"},
+{nome:"Fly Máquina Tempo Lento",grupo:"costas"},
+{nome:"Fly Máquina Excêntrico",grupo:"costas"},
+{nome:"Fly Máquina Concêntrico",grupo:"costas"},
+{nome:"Fly Máquina Pausa",grupo:"costas"},
+{nome:"Fly Máquina Parcial",grupo:"costas"},
+{nome:"Fly Máquina Completo",grupo:"costas"},
+{nome:"Fly Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Fly Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Fly Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Fly Máquina Articulado",grupo:"costas"},
+{nome:"Fly Máquina Guiado",grupo:"costas"},
+{nome:"Fly Máquina Livre",grupo:"costas"},
+{nome:"Fly Máquina Avançado",grupo:"costas"},
+{nome:"Fly Máquina Controle Total",grupo:"costas"},
+{nome:"Crossover Unilateral",grupo:"costas"},
+{nome:"Crossover Alternado",grupo:"costas"},
+{nome:"Crossover Isométrico",grupo:"costas"},
+{nome:"Crossover Explosivo",grupo:"costas"},
+{nome:"Crossover Drop Set",grupo:"costas"},
+{nome:"Crossover Rest Pause",grupo:"costas"},
+{nome:"Crossover Tempo Lento",grupo:"costas"},
+{nome:"Crossover Excêntrico",grupo:"costas"},
+{nome:"Crossover Concêntrico",grupo:"costas"},
+{nome:"Crossover Pausa",grupo:"costas"},
+{nome:"Crossover Parcial",grupo:"costas"},
+{nome:"Crossover Completo",grupo:"costas"},
+{nome:"Crossover Pegada Neutra",grupo:"costas"},
+{nome:"Crossover Pegada Aberta",grupo:"costas"},
+{nome:"Crossover Pegada Fechada",grupo:"costas"},
+{nome:"Crossover Articulado",grupo:"costas"},
+{nome:"Crossover Guiado",grupo:"costas"},
+{nome:"Crossover Livre",grupo:"costas"},
+{nome:"Crossover Avançado",grupo:"costas"},
+{nome:"Crossover Controle Total",grupo:"costas"},
+{nome:"Pulldown Unilateral",grupo:"costas"},
+{nome:"Pulldown Alternado",grupo:"costas"},
+{nome:"Pulldown Isométrico",grupo:"costas"},
+{nome:"Pulldown Explosivo",grupo:"costas"},
+{nome:"Pulldown Drop Set",grupo:"costas"},
+{nome:"Pulldown Rest Pause",grupo:"costas"},
+{nome:"Pulldown Tempo Lento",grupo:"costas"},
+{nome:"Pulldown Excêntrico",grupo:"costas"},
+{nome:"Pulldown Concêntrico",grupo:"costas"},
+{nome:"Pulldown Pausa",grupo:"costas"},
+{nome:"Pulldown Parcial",grupo:"costas"},
+{nome:"Pulldown Completo",grupo:"costas"},
+{nome:"Pulldown Pegada Neutra",grupo:"costas"},
+{nome:"Pulldown Pegada Aberta",grupo:"costas"},
+{nome:"Pulldown Pegada Fechada",grupo:"costas"},
+{nome:"Pulldown Articulado",grupo:"costas"},
+{nome:"Pulldown Guiado",grupo:"costas"},
+{nome:"Pulldown Livre",grupo:"costas"},
+{nome:"Pulldown Avançado",grupo:"costas"},
+{nome:"Pulldown Controle Total",grupo:"costas"},
+{nome:"Remada Máquina Unilateral",grupo:"costas"},
+{nome:"Remada Máquina Alternado",grupo:"costas"},
+{nome:"Remada Máquina Isométrico",grupo:"costas"},
+{nome:"Remada Máquina Explosivo",grupo:"costas"},
+{nome:"Remada Máquina Drop Set",grupo:"costas"},
+{nome:"Remada Máquina Rest Pause",grupo:"costas"},
+{nome:"Remada Máquina Tempo Lento",grupo:"costas"},
+{nome:"Remada Máquina Excêntrico",grupo:"costas"},
+{nome:"Remada Máquina Concêntrico",grupo:"costas"},
+{nome:"Remada Máquina Pausa",grupo:"costas"},
+{nome:"Remada Máquina Parcial",grupo:"costas"},
+{nome:"Remada Máquina Completo",grupo:"costas"},
+{nome:"Remada Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Remada Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Remada Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Remada Máquina Articulado",grupo:"costas"},
+{nome:"Remada Máquina Guiado",grupo:"costas"},
+{nome:"Remada Máquina Livre",grupo:"costas"},
+{nome:"Remada Máquina Avançado",grupo:"costas"},
+{nome:"Remada Máquina Controle Total",grupo:"costas"},
+{nome:"Curl Máquina Unilateral",grupo:"costas"},
+{nome:"Curl Máquina Alternado",grupo:"costas"},
+{nome:"Curl Máquina Isométrico",grupo:"costas"},
+{nome:"Curl Máquina Explosivo",grupo:"costas"},
+{nome:"Curl Máquina Drop Set",grupo:"costas"},
+{nome:"Curl Máquina Rest Pause",grupo:"costas"},
+{nome:"Curl Máquina Tempo Lento",grupo:"costas"},
+{nome:"Curl Máquina Excêntrico",grupo:"costas"},
+{nome:"Curl Máquina Concêntrico",grupo:"costas"},
+{nome:"Curl Máquina Pausa",grupo:"costas"},
+{nome:"Curl Máquina Parcial",grupo:"costas"},
+{nome:"Curl Máquina Completo",grupo:"costas"},
+{nome:"Curl Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Curl Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Curl Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Curl Máquina Articulado",grupo:"costas"},
+{nome:"Curl Máquina Guiado",grupo:"costas"},
+{nome:"Curl Máquina Livre",grupo:"costas"},
+{nome:"Curl Máquina Avançado",grupo:"costas"},
+{nome:"Curl Máquina Controle Total",grupo:"costas"},
+{nome:"Extensão Máquina Unilateral",grupo:"costas"},
+{nome:"Extensão Máquina Alternado",grupo:"costas"},
+{nome:"Extensão Máquina Isométrico",grupo:"costas"},
+{nome:"Extensão Máquina Explosivo",grupo:"costas"},
+{nome:"Extensão Máquina Drop Set",grupo:"costas"},
+{nome:"Extensão Máquina Rest Pause",grupo:"costas"},
+{nome:"Extensão Máquina Tempo Lento",grupo:"costas"},
+{nome:"Extensão Máquina Excêntrico",grupo:"costas"},
+{nome:"Extensão Máquina Concêntrico",grupo:"costas"},
+{nome:"Extensão Máquina Pausa",grupo:"costas"},
+{nome:"Extensão Máquina Parcial",grupo:"costas"},
+{nome:"Extensão Máquina Completo",grupo:"costas"},
+{nome:"Extensão Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Extensão Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Extensão Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Extensão Máquina Articulado",grupo:"costas"},
+{nome:"Extensão Máquina Guiado",grupo:"costas"},
+{nome:"Extensão Máquina Livre",grupo:"costas"},
+{nome:"Extensão Máquina Avançado",grupo:"costas"},
+{nome:"Extensão Máquina Controle Total",grupo:"costas"},
+{nome:"Leg Press Unilateral",grupo:"costas"},
+{nome:"Leg Press Alternado",grupo:"costas"},
+{nome:"Leg Press Isométrico",grupo:"costas"},
+{nome:"Leg Press Explosivo",grupo:"costas"},
+{nome:"Leg Press Drop Set",grupo:"costas"},
+{nome:"Leg Press Rest Pause",grupo:"costas"},
+{nome:"Leg Press Tempo Lento",grupo:"costas"},
+{nome:"Leg Press Excêntrico",grupo:"costas"},
+{nome:"Leg Press Concêntrico",grupo:"costas"},
+{nome:"Leg Press Pausa",grupo:"costas"},
+{nome:"Leg Press Parcial",grupo:"costas"},
+{nome:"Leg Press Completo",grupo:"costas"},
+{nome:"Leg Press Pegada Neutra",grupo:"costas"},
+{nome:"Leg Press Pegada Aberta",grupo:"costas"},
+{nome:"Leg Press Pegada Fechada",grupo:"costas"},
+{nome:"Leg Press Articulado",grupo:"costas"},
+{nome:"Leg Press Guiado",grupo:"costas"},
+{nome:"Leg Press Livre",grupo:"costas"},
+{nome:"Leg Press Avançado",grupo:"costas"},
+{nome:"Leg Press Controle Total",grupo:"costas"},
+{nome:"Hack Machine Unilateral",grupo:"costas"},
+{nome:"Hack Machine Alternado",grupo:"costas"},
+{nome:"Hack Machine Isométrico",grupo:"costas"},
+{nome:"Hack Machine Explosivo",grupo:"costas"},
+{nome:"Hack Machine Drop Set",grupo:"costas"},
+{nome:"Hack Machine Rest Pause",grupo:"costas"},
+{nome:"Hack Machine Tempo Lento",grupo:"costas"},
+{nome:"Hack Machine Excêntrico",grupo:"costas"},
+{nome:"Hack Machine Concêntrico",grupo:"costas"},
+{nome:"Hack Machine Pausa",grupo:"costas"},
+{nome:"Hack Machine Parcial",grupo:"costas"},
+{nome:"Hack Machine Completo",grupo:"costas"},
+{nome:"Hack Machine Pegada Neutra",grupo:"costas"},
+{nome:"Hack Machine Pegada Aberta",grupo:"costas"},
+{nome:"Hack Machine Pegada Fechada",grupo:"costas"},
+{nome:"Hack Machine Articulado",grupo:"costas"},
+{nome:"Hack Machine Guiado",grupo:"costas"},
+{nome:"Hack Machine Livre",grupo:"costas"},
+{nome:"Hack Machine Avançado",grupo:"costas"},
+{nome:"Hack Machine Controle Total",grupo:"costas"},
+{nome:"Extensora Unilateral",grupo:"costas"},
+{nome:"Extensora Alternado",grupo:"costas"},
+{nome:"Extensora Isométrico",grupo:"costas"},
+{nome:"Extensora Explosivo",grupo:"costas"},
+{nome:"Extensora Drop Set",grupo:"costas"},
+{nome:"Extensora Rest Pause",grupo:"costas"},
+{nome:"Extensora Tempo Lento",grupo:"costas"},
+{nome:"Extensora Excêntrico",grupo:"costas"},
+{nome:"Extensora Concêntrico",grupo:"costas"},
+{nome:"Extensora Pausa",grupo:"costas"},
+{nome:"Extensora Parcial",grupo:"costas"},
+{nome:"Extensora Completo",grupo:"costas"},
+{nome:"Extensora Pegada Neutra",grupo:"costas"},
+{nome:"Extensora Pegada Aberta",grupo:"costas"},
+{nome:"Extensora Pegada Fechada",grupo:"costas"},
+{nome:"Extensora Articulado",grupo:"costas"},
+{nome:"Extensora Guiado",grupo:"costas"},
+{nome:"Extensora Livre",grupo:"costas"},
+{nome:"Extensora Avançado",grupo:"costas"},
+{nome:"Extensora Controle Total",grupo:"costas"},
+{nome:"Flexora Unilateral",grupo:"costas"},
+{nome:"Flexora Alternado",grupo:"costas"},
+{nome:"Flexora Isométrico",grupo:"costas"},
+{nome:"Flexora Explosivo",grupo:"costas"},
+{nome:"Flexora Drop Set",grupo:"costas"},
+{nome:"Flexora Rest Pause",grupo:"costas"},
+{nome:"Flexora Tempo Lento",grupo:"costas"},
+{nome:"Flexora Excêntrico",grupo:"costas"},
+{nome:"Flexora Concêntrico",grupo:"costas"},
+{nome:"Flexora Pausa",grupo:"costas"},
+{nome:"Flexora Parcial",grupo:"costas"},
+{nome:"Flexora Completo",grupo:"costas"},
+{nome:"Flexora Pegada Neutra",grupo:"costas"},
+{nome:"Flexora Pegada Aberta",grupo:"costas"},
+{nome:"Flexora Pegada Fechada",grupo:"costas"},
+{nome:"Flexora Articulado",grupo:"costas"},
+{nome:"Flexora Guiado",grupo:"costas"},
+{nome:"Flexora Livre",grupo:"costas"},
+{nome:"Flexora Avançado",grupo:"costas"},
+{nome:"Flexora Controle Total",grupo:"costas"},
+{nome:"Glúteo Máquina Unilateral",grupo:"costas"},
+{nome:"Glúteo Máquina Alternado",grupo:"costas"},
+{nome:"Glúteo Máquina Isométrico",grupo:"costas"},
+{nome:"Glúteo Máquina Explosivo",grupo:"costas"},
+{nome:"Glúteo Máquina Drop Set",grupo:"costas"},
+{nome:"Glúteo Máquina Rest Pause",grupo:"costas"},
+{nome:"Glúteo Máquina Tempo Lento",grupo:"costas"},
+{nome:"Glúteo Máquina Excêntrico",grupo:"costas"},
+{nome:"Glúteo Máquina Concêntrico",grupo:"costas"},
+{nome:"Glúteo Máquina Pausa",grupo:"costas"},
+{nome:"Glúteo Máquina Parcial",grupo:"costas"},
+{nome:"Glúteo Máquina Completo",grupo:"costas"},
+{nome:"Glúteo Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Glúteo Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Glúteo Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Glúteo Máquina Articulado",grupo:"costas"},
+{nome:"Glúteo Máquina Guiado",grupo:"costas"},
+{nome:"Glúteo Máquina Livre",grupo:"costas"},
+{nome:"Glúteo Máquina Avançado",grupo:"costas"},
+{nome:"Glúteo Máquina Controle Total",grupo:"costas"},
+{nome:"Panturrilha Máquina Unilateral",grupo:"costas"},
+{nome:"Panturrilha Máquina Alternado",grupo:"costas"},
+{nome:"Panturrilha Máquina Isométrico",grupo:"costas"},
+{nome:"Panturrilha Máquina Explosivo",grupo:"costas"},
+{nome:"Panturrilha Máquina Drop Set",grupo:"costas"},
+{nome:"Panturrilha Máquina Rest Pause",grupo:"costas"},
+{nome:"Panturrilha Máquina Tempo Lento",grupo:"costas"},
+{nome:"Panturrilha Máquina Excêntrico",grupo:"costas"},
+{nome:"Panturrilha Máquina Concêntrico",grupo:"costas"},
+{nome:"Panturrilha Máquina Pausa",grupo:"costas"},
+{nome:"Panturrilha Máquina Parcial",grupo:"costas"},
+{nome:"Panturrilha Máquina Completo",grupo:"costas"},
+{nome:"Panturrilha Máquina Pegada Neutra",grupo:"costas"},
+{nome:"Panturrilha Máquina Pegada Aberta",grupo:"costas"},
+{nome:"Panturrilha Máquina Pegada Fechada",grupo:"costas"},
+{nome:"Panturrilha Máquina Articulado",grupo:"costas"},
+{nome:"Panturrilha Máquina Guiado",grupo:"costas"},
+{nome:"Panturrilha Máquina Livre",grupo:"costas"},
+{nome:"Panturrilha Máquina Avançado",grupo:"costas"},
+{nome:"Panturrilha Máquina Controle Total",grupo:"costas"},
+{nome:"Shoulder Press Unilateral",grupo:"costas"},
+{nome:"Shoulder Press Alternado",grupo:"costas"},
+{nome:"Shoulder Press Isométrico",grupo:"costas"},
+{nome:"Shoulder Press Explosivo",grupo:"costas"},
+{nome:"Shoulder Press Drop Set",grupo:"costas"},
+{nome:"Shoulder Press Rest Pause",grupo:"costas"},
+{nome:"Shoulder Press Tempo Lento",grupo:"costas"},
+{nome:"Shoulder Press Excêntrico",grupo:"costas"},
+{nome:"Shoulder Press Concêntrico",grupo:"costas"},
+{nome:"Shoulder Press Pausa",grupo:"costas"},
+{nome:"Shoulder Press Parcial",grupo:"costas"},
+{nome:"Shoulder Press Completo",grupo:"costas"},
+{nome:"Shoulder Press Pegada Neutra",grupo:"costas"},
+{nome:"Shoulder Press Pegada Aberta",grupo:"costas"},
+{nome:"Shoulder Press Pegada Fechada",grupo:"costas"},
+{nome:"Shoulder Press Articulado",grupo:"costas"},
+{nome:"Shoulder Press Guiado",grupo:"costas"},
+{nome:"Shoulder Press Livre",grupo:"costas"},
+{nome:"Shoulder Press Avançado",grupo:"costas"},
+{nome:"Shoulder Press Controle Total",grupo:"costas"},
+{nome:"Elevação Lateral Unilateral",grupo:"costas"},
+{nome:"Elevação Lateral Alternado",grupo:"costas"},
+{nome:"Elevação Lateral Isométrico",grupo:"costas"},
+{nome:"Elevação Lateral Explosivo",grupo:"costas"},
+{nome:"Elevação Lateral Drop Set",grupo:"costas"},
+{nome:"Elevação Lateral Rest Pause",grupo:"costas"},
+{nome:"Elevação Lateral Tempo Lento",grupo:"costas"},
+{nome:"Elevação Lateral Excêntrico",grupo:"costas"},
+{nome:"Elevação Lateral Concêntrico",grupo:"costas"},
+{nome:"Elevação Lateral Pausa",grupo:"costas"},
+{nome:"Elevação Lateral Parcial",grupo:"costas"},
+{nome:"Elevação Lateral Completo",grupo:"costas"},
+{nome:"Elevação Lateral Pegada Neutra",grupo:"costas"},
+{nome:"Elevação Lateral Pegada Aberta",grupo:"costas"},
+{nome:"Elevação Lateral Pegada Fechada",grupo:"costas"},
+{nome:"Elevação Lateral Articulado",grupo:"costas"},
+{nome:"Elevação Lateral Guiado",grupo:"costas"},
+{nome:"Elevação Lateral Livre",grupo:"costas"},
+{nome:"Elevação Lateral Avançado",grupo:"costas"},
+{nome:"Elevação Lateral Controle Total",grupo:"costas"},
+{nome:"Rear Delt Unilateral",grupo:"costas"},
+{nome:"Rear Delt Alternado",grupo:"costas"},
+{nome:"Rear Delt Isométrico",grupo:"costas"},
+{nome:"Rear Delt Explosivo",grupo:"costas"},
+{nome:"Rear Delt Drop Set",grupo:"costas"},
+{nome:"Rear Delt Rest Pause",grupo:"costas"},
+{nome:"Rear Delt Tempo Lento",grupo:"costas"},
+{nome:"Rear Delt Excêntrico",grupo:"costas"},
+{nome:"Rear Delt Concêntrico",grupo:"costas"},
+{nome:"Rear Delt Pausa",grupo:"costas"},
+{nome:"Rear Delt Parcial",grupo:"costas"},
+{nome:"Rear Delt Completo",grupo:"costas"},
+{nome:"Rear Delt Pegada Neutra",grupo:"costas"},
+{nome:"Rear Delt Pegada Aberta",grupo:"costas"},
+{nome:"Rear Delt Pegada Fechada",grupo:"costas"},
+{nome:"Rear Delt Articulado",grupo:"costas"},
+{nome:"Rear Delt Guiado",grupo:"costas"},
+{nome:"Rear Delt Livre",grupo:"costas"},
+{nome:"Rear Delt Avançado",grupo:"costas"},
+{nome:"Rear Delt Controle Total",grupo:"costas"},
+{nome:"Esteira Unilateral",grupo:"costas"},
+{nome:"Esteira Alternado",grupo:"costas"},
+{nome:"Esteira Isométrico",grupo:"costas"},
+{nome:"Esteira Explosivo",grupo:"costas"},
+{nome:"Esteira Drop Set",grupo:"costas"},
+{nome:"Esteira Rest Pause",grupo:"costas"},
+{nome:"Esteira Tempo Lento",grupo:"costas"},
+{nome:"Esteira Excêntrico",grupo:"costas"},
+{nome:"Esteira Concêntrico",grupo:"costas"},
+{nome:"Esteira Pausa",grupo:"costas"},
+{nome:"Esteira Parcial",grupo:"costas"},
+{nome:"Esteira Completo",grupo:"costas"},
+{nome:"Esteira Pegada Neutra",grupo:"costas"},
+{nome:"Esteira Pegada Aberta",grupo:"costas"},
+{nome:"Esteira Pegada Fechada",grupo:"costas"},
+{nome:"Esteira Articulado",grupo:"costas"},
+{nome:"Esteira Guiado",grupo:"costas"},
+{nome:"Esteira Livre",grupo:"costas"},
+{nome:"Esteira Avançado",grupo:"costas"},
+{nome:"Esteira Controle Total",grupo:"costas"},
+{nome:"Bike Unilateral",grupo:"costas"},
+{nome:"Bike Alternado",grupo:"costas"},
+{nome:"Bike Isométrico",grupo:"costas"},
+{nome:"Bike Explosivo",grupo:"costas"},
+{nome:"Bike Drop Set",grupo:"costas"},
+{nome:"Bike Rest Pause",grupo:"costas"},
+{nome:"Bike Tempo Lento",grupo:"costas"},
+{nome:"Bike Excêntrico",grupo:"costas"},
+{nome:"Bike Concêntrico",grupo:"costas"},
+{nome:"Bike Pausa",grupo:"costas"},
+{nome:"Bike Parcial",grupo:"costas"},
+{nome:"Bike Completo",grupo:"costas"},
+{nome:"Bike Pegada Neutra",grupo:"costas"},
+{nome:"Bike Pegada Aberta",grupo:"costas"},
+{nome:"Bike Pegada Fechada",grupo:"costas"},
+{nome:"Bike Articulado",grupo:"costas"},
+{nome:"Bike Guiado",grupo:"costas"},
+{nome:"Bike Livre",grupo:"costas"},
+{nome:"Bike Avançado",grupo:"costas"},
+{nome:"Bike Controle Total",grupo:"costas"},
+{nome:"Remo Unilateral",grupo:"costas"},
+{nome:"Remo Alternado",grupo:"costas"},
+{nome:"Remo Isométrico",grupo:"costas"},
+{nome:"Remo Explosivo",grupo:"costas"},
+{nome:"Remo Drop Set",grupo:"costas"},
+{nome:"Remo Rest Pause",grupo:"costas"},
+{nome:"Remo Tempo Lento",grupo:"costas"},
+{nome:"Remo Excêntrico",grupo:"costas"},
+{nome:"Remo Concêntrico",grupo:"costas"},
+{nome:"Remo Pausa",grupo:"costas"},
+{nome:"Remo Parcial",grupo:"costas"},
+{nome:"Remo Completo",grupo:"costas"},
+{nome:"Remo Pegada Neutra",grupo:"costas"},
+{nome:"Remo Pegada Aberta",grupo:"costas"},
+{nome:"Remo Pegada Fechada",grupo:"costas"},
+{nome:"Remo Articulado",grupo:"costas"},
+{nome:"Remo Guiado",grupo:"costas"},
+{nome:"Remo Livre",grupo:"costas"},
+{nome:"Remo Avançado",grupo:"costas"},
+{nome:"Remo Controle Total",grupo:"costas"},
+{nome:"Escada Unilateral",grupo:"costas"},
+{nome:"Escada Alternado",grupo:"costas"},
+{nome:"Escada Isométrico",grupo:"costas"},
+{nome:"Escada Explosivo",grupo:"costas"},
+{nome:"Escada Drop Set",grupo:"costas"},
+{nome:"Escada Rest Pause",grupo:"costas"},
+{nome:"Escada Tempo Lento",grupo:"costas"},
+{nome:"Escada Excêntrico",grupo:"costas"},
+{nome:"Escada Concêntrico",grupo:"costas"},
+{nome:"Escada Pausa",grupo:"costas"},
+{nome:"Escada Parcial",grupo:"costas"},
+{nome:"Escada Completo",grupo:"costas"},
+{nome:"Escada Pegada Neutra",grupo:"costas"},
+{nome:"Escada Pegada Aberta",grupo:"costas"},
+{nome:"Escada Pegada Fechada",grupo:"costas"},
+{nome:"Escada Articulado",grupo:"costas"},
+{nome:"Escada Guiado",grupo:"costas"},
+{nome:"Escada Livre",grupo:"costas"},
+{nome:"Escada Avançado",grupo:"costas"},
+{nome:"Escada Controle Total",grupo:"costas"},
+{nome:"Press Máquina Unilateral",grupo:"biceps"},
+{nome:"Press Máquina Alternado",grupo:"biceps"},
+{nome:"Press Máquina Isométrico",grupo:"biceps"},
+{nome:"Press Máquina Explosivo",grupo:"biceps"},
+{nome:"Press Máquina Drop Set",grupo:"biceps"},
+{nome:"Press Máquina Rest Pause",grupo:"biceps"},
+{nome:"Press Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Press Máquina Excêntrico",grupo:"biceps"},
+{nome:"Press Máquina Concêntrico",grupo:"biceps"},
+{nome:"Press Máquina Pausa",grupo:"biceps"},
+{nome:"Press Máquina Parcial",grupo:"biceps"},
+{nome:"Press Máquina Completo",grupo:"biceps"},
+{nome:"Press Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Press Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Press Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Press Máquina Articulado",grupo:"biceps"},
+{nome:"Press Máquina Guiado",grupo:"biceps"},
+{nome:"Press Máquina Livre",grupo:"biceps"},
+{nome:"Press Máquina Avançado",grupo:"biceps"},
+{nome:"Press Máquina Controle Total",grupo:"biceps"},
+{nome:"Fly Máquina Unilateral",grupo:"biceps"},
+{nome:"Fly Máquina Alternado",grupo:"biceps"},
+{nome:"Fly Máquina Isométrico",grupo:"biceps"},
+{nome:"Fly Máquina Explosivo",grupo:"biceps"},
+{nome:"Fly Máquina Drop Set",grupo:"biceps"},
+{nome:"Fly Máquina Rest Pause",grupo:"biceps"},
+{nome:"Fly Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Fly Máquina Excêntrico",grupo:"biceps"},
+{nome:"Fly Máquina Concêntrico",grupo:"biceps"},
+{nome:"Fly Máquina Pausa",grupo:"biceps"},
+{nome:"Fly Máquina Parcial",grupo:"biceps"},
+{nome:"Fly Máquina Completo",grupo:"biceps"},
+{nome:"Fly Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Fly Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Fly Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Fly Máquina Articulado",grupo:"biceps"},
+{nome:"Fly Máquina Guiado",grupo:"biceps"},
+{nome:"Fly Máquina Livre",grupo:"biceps"},
+{nome:"Fly Máquina Avançado",grupo:"biceps"},
+{nome:"Fly Máquina Controle Total",grupo:"biceps"},
+{nome:"Crossover Unilateral",grupo:"biceps"},
+{nome:"Crossover Alternado",grupo:"biceps"},
+{nome:"Crossover Isométrico",grupo:"biceps"},
+{nome:"Crossover Explosivo",grupo:"biceps"},
+{nome:"Crossover Drop Set",grupo:"biceps"},
+{nome:"Crossover Rest Pause",grupo:"biceps"},
+{nome:"Crossover Tempo Lento",grupo:"biceps"},
+{nome:"Crossover Excêntrico",grupo:"biceps"},
+{nome:"Crossover Concêntrico",grupo:"biceps"},
+{nome:"Crossover Pausa",grupo:"biceps"},
+{nome:"Crossover Parcial",grupo:"biceps"},
+{nome:"Crossover Completo",grupo:"biceps"},
+{nome:"Crossover Pegada Neutra",grupo:"biceps"},
+{nome:"Crossover Pegada Aberta",grupo:"biceps"},
+{nome:"Crossover Pegada Fechada",grupo:"biceps"},
+{nome:"Crossover Articulado",grupo:"biceps"},
+{nome:"Crossover Guiado",grupo:"biceps"},
+{nome:"Crossover Livre",grupo:"biceps"},
+{nome:"Crossover Avançado",grupo:"biceps"},
+{nome:"Crossover Controle Total",grupo:"biceps"},
+{nome:"Pulldown Unilateral",grupo:"biceps"},
+{nome:"Pulldown Alternado",grupo:"biceps"},
+{nome:"Pulldown Isométrico",grupo:"biceps"},
+{nome:"Pulldown Explosivo",grupo:"biceps"},
+{nome:"Pulldown Drop Set",grupo:"biceps"},
+{nome:"Pulldown Rest Pause",grupo:"biceps"},
+{nome:"Pulldown Tempo Lento",grupo:"biceps"},
+{nome:"Pulldown Excêntrico",grupo:"biceps"},
+{nome:"Pulldown Concêntrico",grupo:"biceps"},
+{nome:"Pulldown Pausa",grupo:"biceps"},
+{nome:"Pulldown Parcial",grupo:"biceps"},
+{nome:"Pulldown Completo",grupo:"biceps"},
+{nome:"Pulldown Pegada Neutra",grupo:"biceps"},
+{nome:"Pulldown Pegada Aberta",grupo:"biceps"},
+{nome:"Pulldown Pegada Fechada",grupo:"biceps"},
+{nome:"Pulldown Articulado",grupo:"biceps"},
+{nome:"Pulldown Guiado",grupo:"biceps"},
+{nome:"Pulldown Livre",grupo:"biceps"},
+{nome:"Pulldown Avançado",grupo:"biceps"},
+{nome:"Pulldown Controle Total",grupo:"biceps"},
+{nome:"Remada Máquina Unilateral",grupo:"biceps"},
+{nome:"Remada Máquina Alternado",grupo:"biceps"},
+{nome:"Remada Máquina Isométrico",grupo:"biceps"},
+{nome:"Remada Máquina Explosivo",grupo:"biceps"},
+{nome:"Remada Máquina Drop Set",grupo:"biceps"},
+{nome:"Remada Máquina Rest Pause",grupo:"biceps"},
+{nome:"Remada Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Remada Máquina Excêntrico",grupo:"biceps"},
+{nome:"Remada Máquina Concêntrico",grupo:"biceps"},
+{nome:"Remada Máquina Pausa",grupo:"biceps"},
+{nome:"Remada Máquina Parcial",grupo:"biceps"},
+{nome:"Remada Máquina Completo",grupo:"biceps"},
+{nome:"Remada Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Remada Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Remada Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Remada Máquina Articulado",grupo:"biceps"},
+{nome:"Remada Máquina Guiado",grupo:"biceps"},
+{nome:"Remada Máquina Livre",grupo:"biceps"},
+{nome:"Remada Máquina Avançado",grupo:"biceps"},
+{nome:"Remada Máquina Controle Total",grupo:"biceps"},
+{nome:"Curl Máquina Unilateral",grupo:"biceps"},
+{nome:"Curl Máquina Alternado",grupo:"biceps"},
+{nome:"Curl Máquina Isométrico",grupo:"biceps"},
+{nome:"Curl Máquina Explosivo",grupo:"biceps"},
+{nome:"Curl Máquina Drop Set",grupo:"biceps"},
+{nome:"Curl Máquina Rest Pause",grupo:"biceps"},
+{nome:"Curl Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Curl Máquina Excêntrico",grupo:"biceps"},
+{nome:"Curl Máquina Concêntrico",grupo:"biceps"},
+{nome:"Curl Máquina Pausa",grupo:"biceps"},
+{nome:"Curl Máquina Parcial",grupo:"biceps"},
+{nome:"Curl Máquina Completo",grupo:"biceps"},
+{nome:"Curl Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Curl Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Curl Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Curl Máquina Articulado",grupo:"biceps"},
+{nome:"Curl Máquina Guiado",grupo:"biceps"},
+{nome:"Curl Máquina Livre",grupo:"biceps"},
+{nome:"Curl Máquina Avançado",grupo:"biceps"},
+{nome:"Curl Máquina Controle Total",grupo:"biceps"},
+{nome:"Extensão Máquina Unilateral",grupo:"biceps"},
+{nome:"Extensão Máquina Alternado",grupo:"biceps"},
+{nome:"Extensão Máquina Isométrico",grupo:"biceps"},
+{nome:"Extensão Máquina Explosivo",grupo:"biceps"},
+{nome:"Extensão Máquina Drop Set",grupo:"biceps"},
+{nome:"Extensão Máquina Rest Pause",grupo:"biceps"},
+{nome:"Extensão Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Extensão Máquina Excêntrico",grupo:"biceps"},
+{nome:"Extensão Máquina Concêntrico",grupo:"biceps"},
+{nome:"Extensão Máquina Pausa",grupo:"biceps"},
+{nome:"Extensão Máquina Parcial",grupo:"biceps"},
+{nome:"Extensão Máquina Completo",grupo:"biceps"},
+{nome:"Extensão Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Extensão Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Extensão Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Extensão Máquina Articulado",grupo:"biceps"},
+{nome:"Extensão Máquina Guiado",grupo:"biceps"},
+{nome:"Extensão Máquina Livre",grupo:"biceps"},
+{nome:"Extensão Máquina Avançado",grupo:"biceps"},
+{nome:"Extensão Máquina Controle Total",grupo:"biceps"},
+{nome:"Leg Press Unilateral",grupo:"biceps"},
+{nome:"Leg Press Alternado",grupo:"biceps"},
+{nome:"Leg Press Isométrico",grupo:"biceps"},
+{nome:"Leg Press Explosivo",grupo:"biceps"},
+{nome:"Leg Press Drop Set",grupo:"biceps"},
+{nome:"Leg Press Rest Pause",grupo:"biceps"},
+{nome:"Leg Press Tempo Lento",grupo:"biceps"},
+{nome:"Leg Press Excêntrico",grupo:"biceps"},
+{nome:"Leg Press Concêntrico",grupo:"biceps"},
+{nome:"Leg Press Pausa",grupo:"biceps"},
+{nome:"Leg Press Parcial",grupo:"biceps"},
+{nome:"Leg Press Completo",grupo:"biceps"},
+{nome:"Leg Press Pegada Neutra",grupo:"biceps"},
+{nome:"Leg Press Pegada Aberta",grupo:"biceps"},
+{nome:"Leg Press Pegada Fechada",grupo:"biceps"},
+{nome:"Leg Press Articulado",grupo:"biceps"},
+{nome:"Leg Press Guiado",grupo:"biceps"},
+{nome:"Leg Press Livre",grupo:"biceps"},
+{nome:"Leg Press Avançado",grupo:"biceps"},
+{nome:"Leg Press Controle Total",grupo:"biceps"},
+{nome:"Hack Machine Unilateral",grupo:"biceps"},
+{nome:"Hack Machine Alternado",grupo:"biceps"},
+{nome:"Hack Machine Isométrico",grupo:"biceps"},
+{nome:"Hack Machine Explosivo",grupo:"biceps"},
+{nome:"Hack Machine Drop Set",grupo:"biceps"},
+{nome:"Hack Machine Rest Pause",grupo:"biceps"},
+{nome:"Hack Machine Tempo Lento",grupo:"biceps"},
+{nome:"Hack Machine Excêntrico",grupo:"biceps"},
+{nome:"Hack Machine Concêntrico",grupo:"biceps"},
+{nome:"Hack Machine Pausa",grupo:"biceps"},
+{nome:"Hack Machine Parcial",grupo:"biceps"},
+{nome:"Hack Machine Completo",grupo:"biceps"},
+{nome:"Hack Machine Pegada Neutra",grupo:"biceps"},
+{nome:"Hack Machine Pegada Aberta",grupo:"biceps"},
+{nome:"Hack Machine Pegada Fechada",grupo:"biceps"},
+{nome:"Hack Machine Articulado",grupo:"biceps"},
+{nome:"Hack Machine Guiado",grupo:"biceps"},
+{nome:"Hack Machine Livre",grupo:"biceps"},
+{nome:"Hack Machine Avançado",grupo:"biceps"},
+{nome:"Hack Machine Controle Total",grupo:"biceps"},
+{nome:"Extensora Unilateral",grupo:"biceps"},
+{nome:"Extensora Alternado",grupo:"biceps"},
+{nome:"Extensora Isométrico",grupo:"biceps"},
+{nome:"Extensora Explosivo",grupo:"biceps"},
+{nome:"Extensora Drop Set",grupo:"biceps"},
+{nome:"Extensora Rest Pause",grupo:"biceps"},
+{nome:"Extensora Tempo Lento",grupo:"biceps"},
+{nome:"Extensora Excêntrico",grupo:"biceps"},
+{nome:"Extensora Concêntrico",grupo:"biceps"},
+{nome:"Extensora Pausa",grupo:"biceps"},
+{nome:"Extensora Parcial",grupo:"biceps"},
+{nome:"Extensora Completo",grupo:"biceps"},
+{nome:"Extensora Pegada Neutra",grupo:"biceps"},
+{nome:"Extensora Pegada Aberta",grupo:"biceps"},
+{nome:"Extensora Pegada Fechada",grupo:"biceps"},
+{nome:"Extensora Articulado",grupo:"biceps"},
+{nome:"Extensora Guiado",grupo:"biceps"},
+{nome:"Extensora Livre",grupo:"biceps"},
+{nome:"Extensora Avançado",grupo:"biceps"},
+{nome:"Extensora Controle Total",grupo:"biceps"},
+{nome:"Flexora Unilateral",grupo:"biceps"},
+{nome:"Flexora Alternado",grupo:"biceps"},
+{nome:"Flexora Isométrico",grupo:"biceps"},
+{nome:"Flexora Explosivo",grupo:"biceps"},
+{nome:"Flexora Drop Set",grupo:"biceps"},
+{nome:"Flexora Rest Pause",grupo:"biceps"},
+{nome:"Flexora Tempo Lento",grupo:"biceps"},
+{nome:"Flexora Excêntrico",grupo:"biceps"},
+{nome:"Flexora Concêntrico",grupo:"biceps"},
+{nome:"Flexora Pausa",grupo:"biceps"},
+{nome:"Flexora Parcial",grupo:"biceps"},
+{nome:"Flexora Completo",grupo:"biceps"},
+{nome:"Flexora Pegada Neutra",grupo:"biceps"},
+{nome:"Flexora Pegada Aberta",grupo:"biceps"},
+{nome:"Flexora Pegada Fechada",grupo:"biceps"},
+{nome:"Flexora Articulado",grupo:"biceps"},
+{nome:"Flexora Guiado",grupo:"biceps"},
+{nome:"Flexora Livre",grupo:"biceps"},
+{nome:"Flexora Avançado",grupo:"biceps"},
+{nome:"Flexora Controle Total",grupo:"biceps"},
+{nome:"Glúteo Máquina Unilateral",grupo:"biceps"},
+{nome:"Glúteo Máquina Alternado",grupo:"biceps"},
+{nome:"Glúteo Máquina Isométrico",grupo:"biceps"},
+{nome:"Glúteo Máquina Explosivo",grupo:"biceps"},
+{nome:"Glúteo Máquina Drop Set",grupo:"biceps"},
+{nome:"Glúteo Máquina Rest Pause",grupo:"biceps"},
+{nome:"Glúteo Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Glúteo Máquina Excêntrico",grupo:"biceps"},
+{nome:"Glúteo Máquina Concêntrico",grupo:"biceps"},
+{nome:"Glúteo Máquina Pausa",grupo:"biceps"},
+{nome:"Glúteo Máquina Parcial",grupo:"biceps"},
+{nome:"Glúteo Máquina Completo",grupo:"biceps"},
+{nome:"Glúteo Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Glúteo Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Glúteo Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Glúteo Máquina Articulado",grupo:"biceps"},
+{nome:"Glúteo Máquina Guiado",grupo:"biceps"},
+{nome:"Glúteo Máquina Livre",grupo:"biceps"},
+{nome:"Glúteo Máquina Avançado",grupo:"biceps"},
+{nome:"Glúteo Máquina Controle Total",grupo:"biceps"},
+{nome:"Panturrilha Máquina Unilateral",grupo:"biceps"},
+{nome:"Panturrilha Máquina Alternado",grupo:"biceps"},
+{nome:"Panturrilha Máquina Isométrico",grupo:"biceps"},
+{nome:"Panturrilha Máquina Explosivo",grupo:"biceps"},
+{nome:"Panturrilha Máquina Drop Set",grupo:"biceps"},
+{nome:"Panturrilha Máquina Rest Pause",grupo:"biceps"},
+{nome:"Panturrilha Máquina Tempo Lento",grupo:"biceps"},
+{nome:"Panturrilha Máquina Excêntrico",grupo:"biceps"},
+{nome:"Panturrilha Máquina Concêntrico",grupo:"biceps"},
+{nome:"Panturrilha Máquina Pausa",grupo:"biceps"},
+{nome:"Panturrilha Máquina Parcial",grupo:"biceps"},
+{nome:"Panturrilha Máquina Completo",grupo:"biceps"},
+{nome:"Panturrilha Máquina Pegada Neutra",grupo:"biceps"},
+{nome:"Panturrilha Máquina Pegada Aberta",grupo:"biceps"},
+{nome:"Panturrilha Máquina Pegada Fechada",grupo:"biceps"},
+{nome:"Panturrilha Máquina Articulado",grupo:"biceps"},
+{nome:"Panturrilha Máquina Guiado",grupo:"biceps"},
+{nome:"Panturrilha Máquina Livre",grupo:"biceps"},
+{nome:"Panturrilha Máquina Avançado",grupo:"biceps"},
+{nome:"Panturrilha Máquina Controle Total",grupo:"biceps"},
+{nome:"Shoulder Press Unilateral",grupo:"biceps"},
+{nome:"Shoulder Press Alternado",grupo:"biceps"},
+{nome:"Shoulder Press Isométrico",grupo:"biceps"},
+{nome:"Shoulder Press Explosivo",grupo:"biceps"},
+{nome:"Shoulder Press Drop Set",grupo:"biceps"},
+{nome:"Shoulder Press Rest Pause",grupo:"biceps"},
+{nome:"Shoulder Press Tempo Lento",grupo:"biceps"},
+{nome:"Shoulder Press Excêntrico",grupo:"biceps"},
+{nome:"Shoulder Press Concêntrico",grupo:"biceps"},
+{nome:"Shoulder Press Pausa",grupo:"biceps"},
+{nome:"Shoulder Press Parcial",grupo:"biceps"},
+{nome:"Shoulder Press Completo",grupo:"biceps"},
+{nome:"Shoulder Press Pegada Neutra",grupo:"biceps"},
+{nome:"Shoulder Press Pegada Aberta",grupo:"biceps"},
+{nome:"Shoulder Press Pegada Fechada",grupo:"biceps"},
+{nome:"Shoulder Press Articulado",grupo:"biceps"},
+{nome:"Shoulder Press Guiado",grupo:"biceps"},
+{nome:"Shoulder Press Livre",grupo:"biceps"},
+{nome:"Shoulder Press Avançado",grupo:"biceps"},
+{nome:"Shoulder Press Controle Total",grupo:"biceps"},
+{nome:"Elevação Lateral Unilateral",grupo:"biceps"},
+{nome:"Elevação Lateral Alternado",grupo:"biceps"},
+{nome:"Elevação Lateral Isométrico",grupo:"biceps"},
+{nome:"Elevação Lateral Explosivo",grupo:"biceps"},
+{nome:"Elevação Lateral Drop Set",grupo:"biceps"},
+{nome:"Elevação Lateral Rest Pause",grupo:"biceps"},
+{nome:"Elevação Lateral Tempo Lento",grupo:"biceps"},
+{nome:"Elevação Lateral Excêntrico",grupo:"biceps"},
+{nome:"Elevação Lateral Concêntrico",grupo:"biceps"},
+{nome:"Elevação Lateral Pausa",grupo:"biceps"},
+{nome:"Elevação Lateral Parcial",grupo:"biceps"},
+{nome:"Elevação Lateral Completo",grupo:"biceps"},
+{nome:"Elevação Lateral Pegada Neutra",grupo:"biceps"},
+{nome:"Elevação Lateral Pegada Aberta",grupo:"biceps"},
+{nome:"Elevação Lateral Pegada Fechada",grupo:"biceps"},
+{nome:"Elevação Lateral Articulado",grupo:"biceps"},
+{nome:"Elevação Lateral Guiado",grupo:"biceps"},
+{nome:"Elevação Lateral Livre",grupo:"biceps"},
+{nome:"Elevação Lateral Avançado",grupo:"biceps"},
+{nome:"Elevação Lateral Controle Total",grupo:"biceps"},
+{nome:"Rear Delt Unilateral",grupo:"biceps"},
+{nome:"Rear Delt Alternado",grupo:"biceps"},
+{nome:"Rear Delt Isométrico",grupo:"biceps"},
+{nome:"Rear Delt Explosivo",grupo:"biceps"},
+{nome:"Rear Delt Drop Set",grupo:"biceps"},
+{nome:"Rear Delt Rest Pause",grupo:"biceps"},
+{nome:"Rear Delt Tempo Lento",grupo:"biceps"},
+{nome:"Rear Delt Excêntrico",grupo:"biceps"},
+{nome:"Rear Delt Concêntrico",grupo:"biceps"},
+{nome:"Rear Delt Pausa",grupo:"biceps"},
+{nome:"Rear Delt Parcial",grupo:"biceps"},
+{nome:"Rear Delt Completo",grupo:"biceps"},
+{nome:"Rear Delt Pegada Neutra",grupo:"biceps"},
+{nome:"Rear Delt Pegada Aberta",grupo:"biceps"},
+{nome:"Rear Delt Pegada Fechada",grupo:"biceps"},
+{nome:"Rear Delt Articulado",grupo:"biceps"},
+{nome:"Rear Delt Guiado",grupo:"biceps"},
+{nome:"Rear Delt Livre",grupo:"biceps"},
+{nome:"Rear Delt Avançado",grupo:"biceps"},
+{nome:"Rear Delt Controle Total",grupo:"biceps"},
+{nome:"Esteira Unilateral",grupo:"biceps"},
+{nome:"Esteira Alternado",grupo:"biceps"},
+{nome:"Esteira Isométrico",grupo:"biceps"},
+{nome:"Esteira Explosivo",grupo:"biceps"},
+{nome:"Esteira Drop Set",grupo:"biceps"},
+{nome:"Esteira Rest Pause",grupo:"biceps"},
+{nome:"Esteira Tempo Lento",grupo:"biceps"},
+{nome:"Esteira Excêntrico",grupo:"biceps"},
+{nome:"Esteira Concêntrico",grupo:"biceps"},
+{nome:"Esteira Pausa",grupo:"biceps"},
+{nome:"Esteira Parcial",grupo:"biceps"},
+{nome:"Esteira Completo",grupo:"biceps"},
+{nome:"Esteira Pegada Neutra",grupo:"biceps"},
+{nome:"Esteira Pegada Aberta",grupo:"biceps"},
+{nome:"Esteira Pegada Fechada",grupo:"biceps"},
+{nome:"Esteira Articulado",grupo:"biceps"},
+{nome:"Esteira Guiado",grupo:"biceps"},
+{nome:"Esteira Livre",grupo:"biceps"},
+{nome:"Esteira Avançado",grupo:"biceps"},
+{nome:"Esteira Controle Total",grupo:"biceps"},
+{nome:"Bike Unilateral",grupo:"biceps"},
+{nome:"Bike Alternado",grupo:"biceps"},
+{nome:"Bike Isométrico",grupo:"biceps"},
+{nome:"Bike Explosivo",grupo:"biceps"},
+{nome:"Bike Drop Set",grupo:"biceps"},
+{nome:"Bike Rest Pause",grupo:"biceps"},
+{nome:"Bike Tempo Lento",grupo:"biceps"},
+{nome:"Bike Excêntrico",grupo:"biceps"},
+{nome:"Bike Concêntrico",grupo:"biceps"},
+{nome:"Bike Pausa",grupo:"biceps"},
+{nome:"Bike Parcial",grupo:"biceps"},
+{nome:"Bike Completo",grupo:"biceps"},
+{nome:"Bike Pegada Neutra",grupo:"biceps"},
+{nome:"Bike Pegada Aberta",grupo:"biceps"},
+{nome:"Bike Pegada Fechada",grupo:"biceps"},
+{nome:"Bike Articulado",grupo:"biceps"},
+{nome:"Bike Guiado",grupo:"biceps"},
+{nome:"Bike Livre",grupo:"biceps"},
+{nome:"Bike Avançado",grupo:"biceps"},
+{nome:"Bike Controle Total",grupo:"biceps"},
+{nome:"Remo Unilateral",grupo:"biceps"},
+{nome:"Remo Alternado",grupo:"biceps"},
+{nome:"Remo Isométrico",grupo:"biceps"},
+{nome:"Remo Explosivo",grupo:"biceps"},
+{nome:"Remo Drop Set",grupo:"biceps"},
+{nome:"Remo Rest Pause",grupo:"biceps"},
+{nome:"Remo Tempo Lento",grupo:"biceps"},
+{nome:"Remo Excêntrico",grupo:"biceps"},
+{nome:"Remo Concêntrico",grupo:"biceps"},
+{nome:"Remo Pausa",grupo:"biceps"},
+{nome:"Remo Parcial",grupo:"biceps"},
+{nome:"Remo Completo",grupo:"biceps"},
+{nome:"Remo Pegada Neutra",grupo:"biceps"},
+{nome:"Remo Pegada Aberta",grupo:"biceps"},
+{nome:"Remo Pegada Fechada",grupo:"biceps"},
+{nome:"Remo Articulado",grupo:"biceps"},
+{nome:"Remo Guiado",grupo:"biceps"},
+{nome:"Remo Livre",grupo:"biceps"},
+{nome:"Remo Avançado",grupo:"biceps"},
+{nome:"Remo Controle Total",grupo:"biceps"},
+{nome:"Escada Unilateral",grupo:"biceps"},
+{nome:"Escada Alternado",grupo:"biceps"},
+{nome:"Escada Isométrico",grupo:"biceps"},
+{nome:"Escada Explosivo",grupo:"biceps"},
+{nome:"Escada Drop Set",grupo:"biceps"},
+{nome:"Escada Rest Pause",grupo:"biceps"},
+{nome:"Escada Tempo Lento",grupo:"biceps"},
+{nome:"Escada Excêntrico",grupo:"biceps"},
+{nome:"Escada Concêntrico",grupo:"biceps"},
+{nome:"Escada Pausa",grupo:"biceps"},
+{nome:"Escada Parcial",grupo:"biceps"},
+{nome:"Escada Completo",grupo:"biceps"},
+{nome:"Escada Pegada Neutra",grupo:"biceps"},
+{nome:"Escada Pegada Aberta",grupo:"biceps"},
+{nome:"Escada Pegada Fechada",grupo:"biceps"},
+{nome:"Escada Articulado",grupo:"biceps"},
+{nome:"Escada Guiado",grupo:"biceps"},
+{nome:"Escada Livre",grupo:"biceps"},
+{nome:"Escada Avançado",grupo:"biceps"},
+{nome:"Escada Controle Total",grupo:"biceps"},
+
+
+
+
+];
+
+// --- AUTH ---
+async function login() {
+    const e = document.getElementById("email_input").value;
+    const p = document.getElementById("pass_input").value;
+    const { error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
+    if (error) alert(error.message);
+}
+async function logout() { await _supabase.auth.signOut(); location.reload(); }
+
+_supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        usuario = session.user.id;
+        document.getElementById("app").style.display = "block";
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("user-info").style.display = "block";
+        document.getElementById("user-text").innerText = session.user.email;
+    }
+    recarregarLista();
+});
+
+// --- FILTROS ---
+function setGrupo(g) {
+    grupoAtual = g;
+    mostrarFav = false;
+    document.querySelectorAll('.filter-container button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    recarregarLista();
+}
+
+function toggleFav() {
+    mostrarFav = !mostrarFav;
+    document.getElementById("btn-fav").classList.toggle('active');
+    recarregarLista();
+}
+
+function recarregarLista() {
+    const termo = document.getElementById("busca").value.toLowerCase();
+    filtrados = maquinas.filter(m => {
+        const matchesGrupo = (grupoAtual === "todos" || m.grupo === grupoAtual);
+        const matchesBusca = m.nome.toLowerCase().includes(termo);
+        const matchesFav = !mostrarFav || localStorage.getItem(usuario + "_" + m.nome + "_fav") === "true";
+        return matchesGrupo && matchesBusca && matchesFav;
+    });
+    document.getElementById("lista").innerHTML = "";
+    idxAtual = 0;
+    renderMais();
+}
+
+function favoritar(nome, btn) {
+    const key = usuario + "_" + nome + "_fav";
+    const status = localStorage.getItem(key) === "true";
+    localStorage.setItem(key, !status);
+    btn.classList.toggle('fav-active');
+    if(mostrarFav) recarregarLista();
+}
+
+// --- RENDERIZAÇÃO ---
+function renderMais() {
+    const container = document.getElementById("lista");
+    const prox = filtrados.slice(idxAtual, idxAtual + 8);
+
+    prox.forEach(m => {
+        const id = m.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+        const key = usuario + "_" + m.nome;
+        const p = localStorage.getItem(key) || 0;
+        const mt = localStorage.getItem(key + "_meta") || 0;
+        const isFav = localStorage.getItem(key + "_fav") === "true";
+        const porc = mt > 0 ? Math.min((p/mt)*100, 100) : 0;
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+            <span class="fav-btn ${isFav?'fav-active':''}" onclick="favoritar('${m.nome}', this)">★</span>
+            <button class="yt-btn" onclick="window.open('https://youtube.com/results?search_query=execução+${m.nome}')">?</button>
+            <h3 style="margin-top:5px; font-size:18px">${m.nome}</h3>
+            
+            <div class="progress-bg"><div id="bar-${id}" class="progress-bar" style="width:${porc}%; background:${porc==100?'#27ae60':'#4285F4'}"></div></div>
+            
+            <div class="timer-box">
+                <span id="display-${id}" class="timer-display">00s</span>
+                <button class="btn-timer" onclick="iniciarTimer('${id}', 45)">45s</button>
+                <button class="btn-timer" onclick="iniciarTimer('${id}', 90)">90s</button>
+            </div>
+
+            <div class="controls-row">
+                <div class="control-group">
+                    <span class="input-label">Peso</span>
+                    <div class="stepper"><button class="btn-step" onclick="step('${id}', 'p', -2)">-</button>
+                    <input type="number" id="p-${id}" value="${p}" class="input-field">
+                    <button class="btn-step" onclick="step('${id}', 'p', 2)">+</button></div>
+                </div>
+                <div class="control-group">
+                    <span class="input-label">Meta</span>
+                    <div class="stepper"><button class="btn-step" onclick="step('${id}', 'm', -2)">-</button>
+                    <input type="number" id="m-${id}" value="${mt}" class="input-field meta-field">
+                    <button class="btn-step" onclick="step('${id}', 'm', 2)">+</button></div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="salvar('${m.nome}', '${id}')" class="btn-save" style="flex:3">SALVAR</button>
+                <button onclick="alternarGrafico('${m.nome}', '${id}')" style="background:#333; border:none; border-radius:10px; flex:1; color:white; font-size:20px;">📈</button>
+            </div>
+
+            <div id="cont-${id}" class="chart-container">
+                <button class="btn-delete-hist" onclick="excluirHistorico('${m.nome}', '${id}')">🗑️ APAGAR DADOS DO GRÁFICO</button>
+                <canvas id="canvas-${id}"></canvas>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+    idxAtual += 8;
+    document.getElementById("sentinel").style.display = idxAtual >= filtrados.length ? "none" : "block";
+}
+
+// --- UTILITÁRIOS ---
+function step(id, type, val) {
+    const el = document.getElementById(`${type}-${id}`);
+    let n = parseFloat(el.value) || 0;
+    n = Math.max(0, n + val);
+    el.value = n;
+}
+
+function iniciarTimer(id, segs) {
+    if (timers[id]) clearInterval(timers[id]);
+    let t = segs;
+    const d = document.getElementById("display-" + id);
+    d.style.color = "#e67e22";
+    timers[id] = setInterval(() => {
+        t--; d.innerText = t + "s";
+        if (t <= 0) { clearInterval(timers[id]); d.innerText = "FIM!"; d.style.color = "#27ae60"; }
+    }, 1000);
+}
+
+async function salvar(nome, id) {
+    const p = parseFloat(document.getElementById("p-"+id).value) || 0;
+    const m = parseFloat(document.getElementById("m-"+id).value) || 0;
+    localStorage.setItem(usuario+"_"+nome, p);
+    localStorage.setItem(usuario+"_"+nome+"_meta", m);
+
+    const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+    let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
+    hist.push({ data: dataH, peso: p });
+    if(hist.length > 7) hist.shift();
+    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
+
+    const bar = document.getElementById("bar-"+id);
+    const porc = m > 0 ? Math.min((p/m)*100, 100) : 0;
+    bar.style.width = porc + "%";
+    bar.style.background = porc === 100 ? '#27ae60' : '#4285F4';
+
+    if(usuario !== "convidado") await _supabase.from('treinos').upsert({ user_id: usuario, exercicio: nome, peso: p, meta: m });
+}
+
+function alternarGrafico(nome, id) {
+    const cont = document.getElementById("cont-" + id);
+    if (cont.style.display === "block") {
+        cont.style.display = "none";
+    } else {
+        cont.style.display = "block";
+        renderizarGraficoReal(nome, id);
+    }
+}
+
+function renderizarGraficoReal(nome, id) {
+    const ctx = document.getElementById("canvas-" + id).getContext('2d');
+    const hist = JSON.parse(localStorage.getItem(usuario + "_" + nome + "_hist") || "[]");
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: hist.map(h => h.data),
+            datasets: [{ label: 'kg', data: hist.map(h => h.peso), borderColor: '#4285F4', tension: 0.4, fill: true, backgroundColor: 'rgba(66, 133, 244, 0.1)' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+function excluirHistorico(nome, id) {
+    if (confirm(`Tens a certeza que queres apagar todo o histórico de ${nome}?`)) {
+        localStorage.removeItem(usuario + "_" + nome + "_hist");
+        document.getElementById("cont-" + id).style.display = "none";
+        if (charts[id]) {
+            charts[id].destroy();
+            delete charts[id];
+        }
+    }
+}
+</script>
+</body>
+</html>

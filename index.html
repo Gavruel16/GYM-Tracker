@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    
+
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2366,19 +2366,19 @@ async function salvar(nome, id) {
 
     // ============================================================
     // INÍCIO DO BLOCO DO HISTÓRICO (COLE AQUI)
-    // ============================================================
-    const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+   const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
     let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
 
-    // CORREÇÃO: Se já existir um registro HOJE, atualiza o peso em vez de criar uma linha nova
     const indexHoje = hist.findIndex(item => item.data === dataH);
     if (indexHoje !== -1) {
-        hist[indexHoje].peso = p; // Atualiza o peso do dia
+        hist[indexHoje].peso = p;
     } else {
-        hist.push({ data: dataH, peso: p }); // Adiciona novo dia
+        hist.push({ data: dataH, peso: p });
     }
 
-    if(hist.length > 7) hist.shift(); // Mantém apenas os últimos 7 treinos
+    // Se o gráfico estiver invertido, garantimos que ele mantém apenas os últimos 7
+    if(hist.length > 7) hist.shift(); 
+    
     localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
     // ============================================================
     // FIM DO BLOCO DO HISTÓRICO

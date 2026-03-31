@@ -2415,12 +2415,12 @@ function excluirHistorico(nome, id) {
 // [COLE AQUI - FINAL DO ARQUIVO]
 
 async function registrarUso(nome) {
-    if (usuario === "convidado") return;
-    try {
-        await _supabase.rpc('incrementar_exercicio', { nome_ex: nome });
-    } catch (e) {
-        console.error("Erro ao registrar estatística:", e);
-    }
+    if (!nome || usuario === "convidado") return;
+    
+    // O nome da chave aqui 'nome_ex' TEM que ser igual ao do SQL
+    const { error } = await _supabase.rpc('incrementar_exercicio', { nome_ex: nome });
+    
+    if (error) console.error("Erro na RPC:", error.message);
 }
 
 async function prepararRelatorioAdmin() {

@@ -2224,13 +2224,20 @@ async function cadastrar() {
 }
 async function logout() { await _supabase.auth.signOut(); location.reload(); }
 
-_supabase.auth.onAuthStateChange((event, session) => {
+_supabase.auth.onAuthStateChange(async (event, session) => {
     if (session) {
         usuario = session.user.id;
+        const emailLogado = session.user.email; // Pega o email atual
+
         document.getElementById("app").style.display = "block";
         document.getElementById("login-form").style.display = "none";
         document.getElementById("user-info").style.display = "block";
-        document.getElementById("user-text").innerText = session.user.email;
+        document.getElementById("user-text").innerText = emailLogado;
+
+        // VERIFICAÇÃO DO SEU EMAIL
+        if (emailLogado === "valerio.souza20131604@gmail.com") {
+            prepararRelatorioAdmin();
+        }
     }
     recarregarLista();
 });

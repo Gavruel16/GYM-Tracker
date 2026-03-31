@@ -2403,6 +2403,17 @@ function excluirHistorico(nome, id) {
         }
     }
 }
+// Cole isso lá no final, antes do último
+async function registrarUso(nome) {
+    if (usuario === "convidado") return; // Não registra se for convidado
+
+    try {
+        // Isso chama a função SQL (RPC) que criamos no banco do Supabase
+        await _supabase.rpc('incrementar_exercicio', { nome_ex: nome });
+    } catch (e) {
+        console.error("Erro ao registrar estatística:", e);
+    }
+}
 </script>
 </body>
 </html>

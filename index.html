@@ -2365,7 +2365,7 @@ async function salvar(nome, id) {
     registrarUso(nome);
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
-    
+
     // Pega a data do calendário + Hora atual para a linha poder subir no mesmo dia
     const dataInput = document.getElementById("date-"+id).value; 
     const partes = dataInput.split('-');
@@ -2414,6 +2414,7 @@ async function salvar(nome, id) {
         );
     }
 }
+
 function alternarGrafico(nome, id) {
     const cont = document.getElementById("cont-" + id);
     if (cont.style.display === "block") {

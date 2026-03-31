@@ -2356,25 +2356,40 @@ function iniciarTimer(id, segs) {
 }
 
 async function salvar(nome, id) {
-registrarUso(nome); 
+    registrarUso(nome); 
     const p = parseFloat(document.getElementById("p-"+id).value) || 0;
     const m = parseFloat(document.getElementById("m-"+id).value) || 0;
     
     localStorage.setItem(usuario+"_"+nome, p);
     localStorage.setItem(usuario+"_"+nome+"_meta", m);
 
+    // ============================================================
+    // INÍCIO DO BLOCO DO HISTÓRICO (COLE AQUI)
+    // ============================================================
     const dataH = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
     let hist = JSON.parse(localStorage.getItem(usuario+"_"+nome+"_hist") || "[]");
-    hist.push({ data: dataH, peso: p });
-    if(hist.length > 7) hist.shift();
-    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
 
+    // CORREÇÃO: Se já existir um registro HOJE, atualiza o peso em vez de criar uma linha nova
+    const indexHoje = hist.findIndex(item => item.data === dataH);
+    if (indexHoje !== -1) {
+        hist[indexHoje].peso = p; // Atualiza o peso do dia
+    } else {
+        hist.push({ data: dataH, peso: p }); // Adiciona novo dia
+    }
+
+    if(hist.length > 7) hist.shift(); // Mantém apenas os últimos 7 treinos
+    localStorage.setItem(usuario+"_"+nome+"_hist", JSON.stringify(hist));
+    // ============================================================
+    // FIM DO BLOCO DO HISTÓRICO
+    // ============================================================
+
+    // REFERÊNCIA ABAIXO: Parte que cuida da barra azul/verde
     const bar = document.getElementById("bar-"+id);
     const porc = m > 0 ? Math.min((p/m)*100, 100) : 0;
     bar.style.width = porc + "%";
     bar.style.background = porc === 100 ? '#27ae60' : '#4285F4';
 
-    // CÓDIGO ATUALIZADO PARA EVITAR ERRO 409:
+    // Parte que envia para o Supabase
     if(usuario !== "convidado") {
         await _supabase.from('treinos').upsert(
             { user_id: usuario, exercicio: nome, peso: p, meta: m },

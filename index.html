@@ -2541,13 +2541,16 @@ async function prepararRelatorioAdmin() {
                 <button onclick="admAdicionarMaquina()" style="width:100%; margin-top:8px; background:#4285F4; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">+ Adicionar</button>
             </div>
 
-                <div style="border-top: 1px solid #333; padding-top: 15px; margin-top: 15px;"></div>
-                <p style="font-size: 12px; margin-bottom: 5px; color: #e74c3c;">Remover máquina:</p>
-                <select id="adm-remover-lista" style="width:100%; background:#333; border:1px solid #444; color:white; padding:8px; border-radius:4px; margin-bottom:8px;">
-                    </select>
-                <button onclick="admRemoverMaquina()" style="width:100%; background:transparent; border:1px solid #e74c3c; color:#e74c3c; padding:8px; border-radius:4px; cursor:pointer;">🗑️ Remover Permanente</button>
-            </div>
-        </div>
+               <div style="border-top: 1px solid #333; padding-top: 15px; margin-top: 15px;">
+    <p style="font-size: 12px; margin-bottom: 5px; color: #e74c3c;">Remover máquina (digite o nome):</p>
+    
+    <input type="text" id="adm-remover-input" list="lista-maquinas-remover" placeholder="Escreva o nome do exercício..." style="width:100%; background:#333; border:1px solid #444; color:white; padding:8px; border-radius:4px; margin-bottom:8px;">
+    
+    <datalist id="lista-maquinas-remover">
+        </datalist>
+
+    <button onclick="admRemoverMaquina()" style="width:100%; background:transparent; border:1px solid #e74c3c; color:#e74c3c; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">🗑️ Remover Permanente</button>
+</div>
 
         <div style="background: #252525; padding: 15px; border-radius: 10px; border: 1px solid #333;">
             <h4 style="margin:0 0 15px 0; color: #2ecc71;">📈 Sistema & Debug</h4>

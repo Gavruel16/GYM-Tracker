@@ -2223,7 +2223,19 @@ async function cadastrar() {
         alert("Conta criada com sucesso! Já podes fazer login.");
     }
 }
-async function logout() { await _supabase.auth.signOut(); location.reload(); }
+async function logout() {
+    await _supabase.auth.signOut();
+    
+    // LIMPA A MARCA DE ADM DO NAVEGADOR
+    localStorage.removeItem("usuario_email"); 
+    
+    // ESCONDE O PAINEL IMEDIATAMENTE
+    if(document.getElementById("painel-adm")) {
+        document.getElementById("painel-adm").style.display = "none";
+    }
+
+    location.reload(); // Recarrega para limpar tudo
+}
 
 _supabase.auth.onAuthStateChange(async (event, session) => {
     if (session) {

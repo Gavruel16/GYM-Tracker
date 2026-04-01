@@ -2667,12 +2667,48 @@ function atualizarStatusBar() {
     }
     atualizarInfoStorage();
 }
+// 2. BACKUP PARA TXT
+function baixarBackup() {
+    let backupData = JSON.stringify(localStorage);
+    let blob = new Blob([backupData], { type: "text/plain" });
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `GYM_BACKUP_${new Date().toLocaleDateString()}.txt`;
+    a.click();
+}
 
-// Chame isso dentro do seu verificarAdmin()
-atualizarStatusBar();
+// 34. MONITOR DE STORAGE
+function infoStorage() {
+    let total = 0;
+    for(let x in localStorage) { if(localStorage.hasOwnProperty(x)) total += localStorage[x].length * 2; }
+    document.getElementById("info-storage").innerText = (total/1024).toFixed(2) + " KB";
+}
+
+// 43. MONITOR DE BATERIA
+if (navigator.getBattery) {
+    navigator.getBattery().then(batt => {
+        document.getElementById("adm-batt").innerText = Math.round(batt.level * 100) + "%";
+    });
+}
+
+// 38. ID DE SESSÃO
+document.getElementById("adm-session-id").innerText = Math.random().toString(36).substring(7).toUpperCase();
+
+// Chame infoStorage() dentro do verificarAdmin()
+function verificarAdmin() {
+    const emailAtual = localStorage.getItem("usuario_email") || ""; 
+    if (emailAtual.toLowerCase() === EMAIL_ADM.toLowerCase()) {
+        document.getElementById("painel-adm").style.display = "block";
+        infoStorage();
+        console.log("🔓 Acesso total liberado.");
+    }
+}
+
 
 // Executa a verificação assim que carregar o script
 verificarAdmin();
+// Chame isso dentro do seu verificarAdmin()
+atualizarStatusBar();
 </script>
 </body>
 </html>

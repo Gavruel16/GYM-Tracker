@@ -2731,29 +2731,42 @@ function verificarAdmin() {
 }
 // 1. FUNÇÃO DE REMOVER MÁQUINA (A que você pediu)
 function admRemoverMaquina() {
-    const nomeParaRemover = document.getElementById("adm-remover-lista").value;
-    if (!nomeParaRemover) return;
+    const nomeDigitado = document.getElementById("adm-remover-input").value.trim();
+    
+    if (!nomeDigitado) {
+        return alert("❌ Digite o nome de uma máquina para remover.");
+    }
 
-    if (confirm(`⚠️ CERTEZA? Isso vai apagar o ${nomeParaRemover} da lista de exercícios.`)) {
-        // Remove do array principal
-        maquinas = maquinas.filter(m => m.nome !== nomeParaRemover);
+    // Verifica se a máquina realmente existe na sua lista
+    const existe = maquinas.find(m => m.nome.toLowerCase() === nomeDigitado.toLowerCase());
+
+    if (!existe) {
+        return alert("⚠️ Essa máquina não foi encontrada na lista atual.");
+    }
+
+    if (confirm(`⚠️ ATENÇÃO: Deseja apagar o exercício "${existe.nome}" da sua lista?`)) {
+        // Filtra a lista mantendo apenas as que NÃO têm o nome digitado
+        maquinas = maquinas.filter(m => m.nome.toLowerCase() !== nomeDigitado.toLowerCase());
         
-        // Salva a nova lista no LocalStorage
+        // Salva a lista atualizada
         localStorage.setItem("maquinas_custom", JSON.stringify(maquinas));
         
-        // Atualiza a tela e o próprio seletor do ADM
-        recarregarLista();
-        atualizarSelectRemover();
-        alert("🗑️ Máquina removida com sucesso!");
+        // Limpa o campo e atualiza a interface
+        document.getElementById("adm-remover-input").value = "";
+        recarregarLista(); 
+        atualizarDatalistRemover(); // Atualiza as sugestões
+        
+        alert("🗑️ " + existe.nome + " removido com sucesso!");
     }
 }
 
-// Atualiza o select de remoção sempre que o painel abre
-function atualizarSelectRemover() {
-    const select = document.getElementById("adm-remover-lista");
-    if (!select) return;
+// Esta função atualiza as "sugestões" enquanto você digita
+function atualizarDatalistRemover() {
+    const datalist = document.getElementById("lista-maquinas-remover");
+    if (!datalist) return;
     
-    select.innerHTML = maquinas.map(m => `<option value="${m.nome}">${m.nome} (${m.grupo})</option>`).join("");
+    // Cria as opções baseadas nas máquinas que você tem
+    datalist.innerHTML = maquinas.map(m => `<option value="${m.nome}">`).join("");
 }
 
 // 2. VERIFICAÇÃO DE ADMIN (CHAME NO SEU LOGIN)

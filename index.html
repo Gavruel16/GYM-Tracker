@@ -2509,5 +2509,115 @@ async function prepararRelatorioAdmin() {
     document.body.appendChild(btnAdmin);
 }
 </script>
+
+<div id="painel-adm" style="display:none; margin: 20px; padding: 20px; border: 3px solid #4285F4; border-radius: 15px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <h2 style="color: #4285F4; margin-top:0; display: flex; align-items: center; gap: 10px;">
+        🛡️ Central de Comando ADM <span style="font-size: 12px; color: #666;">(Acesso: Valério)</span>
+    </h2>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button onclick="syncForcado()" style="background:#27ae60; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">🔄 Sync Forçado</button>
+        <button onclick="gerarTop5()" style="background:#f1c40f; color:black; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">🏆 Top 5 Evolução</button>
+        <button onclick="verLogs()" style="background:#e74c3c; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">📜 Logs de Erro</button>
+    </div>
+
+    <div style="background: #f0f4ff; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+        <h4 style="margin-top:0;">➕ Nova Máquina</h4>
+        <input type="text" id="adm-nome-ex" placeholder="Nome do Exercício" style="padding:8px; border-radius:5px; border:1px solid #ccc;">
+        <select id="adm-grupo-ex" style="padding:8px; border-radius:5px; border:1px solid #ccc;">
+            <option value="Peito">Peito</option>
+            <option value="Costas">Costas</option>
+            <option value="Pernas">Pernas</option>
+            <option value="Braços">Braços</option>
+            <option value="Ombros">Ombros</option>
+        </select>
+        <button onclick="admAdicionarMaquina()" style="padding:8px 15px; background:#4285F4; color:white; border:none; border-radius:5px;">Adicionar</button>
+    </div>
+
+    <button onclick="stressTest('Supino Reto')" style="background:none; border:1px dashed #999; color:#666; padding:5px 10px; font-size:11px; cursor:pointer;">🔥 Rodar Stress Test (Supino Reto)</button>
+</div>
+
+<script>
+// --- LÓGICA UNIFICADA DO ADM ---
+const EMAIL_ADM = "valerio.souza20131604@gmail.com";
+let logsErros = [];
+
+// Função que libera o painel (Chame no seu Login ou no final do arquivo)
+function verificarAdmin() {
+    // Busca o email do usuário logado no localStorage ou variável global
+    const emailAtual = localStorage.getItem("usuario_email") || ""; 
+    
+    if (emailAtual.toLowerCase() === EMAIL_ADM.toLowerCase()) {
+        document.getElementById("painel-adm").style.display = "block";
+        console.log("🔓 Bem-vindo, Valério. Painel ADM ativo.");
+    }
+}
+
+async function syncForcado() {
+    if(!usuario || usuario === "convidado") return alert("Faça login primeiro!");
+    console.log("🔄 Sincronizando máquinas com a nuvem...");
+    
+    for (let m of maquinas) {
+        const p = localStorage.getItem(usuario + "_" + m.nome) || 0;
+        const meta = localStorage.getItem(usuario + "_" + m.nome + "_meta") || 0;
+        const hist = localStorage.getItem(usuario + "_" + m.nome + "_hist") || "[]";
+
+        if (p > 0 || meta > 0 || hist !== "[]") {
+            const { error } = await _supabase.from('treinos').upsert({
+                user_id: usuario,
+                exercicio: m.nome,
+                peso: parseFloat(p),
+                meta: parseFloat(meta),
+                historico: hist
+            }, { onConflict: 'user_id, exercicio' });
+            
+            if (error) logsErros.push(`[${new Date().toLocaleTimeString()}] Erro no ${m.nome}: ${error.message}`);
+        }
+    }
+    alert("✅ Nuvem e Local sincronizados!");
+}
+
+function gerarTop5() {
+    let evolucoes = maquinas.map(m => {
+        let hist = JSON.parse(localStorage.getItem(usuario + "_" + m.nome + "_hist") || "[]");
+        if (hist.length < 2) return null;
+        let ganho = hist[hist.length - 1].peso - hist[0].peso;
+        return { nome: m.nome, ganho: ganho };
+    }).filter(e => e !== null && e.ganho > 0);
+
+    evolucoes.sort((a, b) => b.ganho - a.ganho);
+    let msg = evolucoes.slice(0, 5).map((e, i) => `${i+1}º ${e.nome}: +${e.ganho}kg`).join('\n');
+    alert(msg || "Nenhum dado de evolução suficiente ainda.");
+}
+
+function admAdicionarMaquina() {
+    const nome = document.getElementById("adm-nome-ex").value;
+    const grupo = document.getElementById("adm-grupo-ex").value;
+    if(!nome) return;
+    maquinas.push({ nome: nome, grupo: grupo });
+    localStorage.setItem("maquinas_custom", JSON.stringify(maquinas));
+    recarregarLista(); 
+    alert("✅ Adicionado!");
+}
+
+function verLogs() {
+    alert(logsErros.length > 0 ? logsErros.join('\n') : "Nenhum erro de conexão hoje.");
+}
+
+async function stressTest(nomeEx) {
+    if(!confirm("Gerar 100 pontos falsos para o exercício " + nomeEx + "?")) return;
+    let fakeHist = [];
+    let p = 20;
+    for(let i=1; i<=100; i++) {
+        p += Math.random() * 1.2;
+        fakeHist.push({ data: `${i}/03 10:00`, peso: parseFloat(p.toFixed(1)) });
+    }
+    localStorage.setItem(usuario + "_" + nomeEx + "_hist", JSON.stringify(fakeHist));
+    location.reload();
+}
+
+// Executa a verificação assim que carregar o script
+verificarAdmin();
+</script>
 </body>
 </html>

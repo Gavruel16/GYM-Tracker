@@ -2510,31 +2510,40 @@ async function prepararRelatorioAdmin() {
 }
 </script>
 
-<div id="painel-adm" style="display:none; margin: 20px; padding: 20px; border: 3px solid #4285F4; border-radius: 15px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-    <h2 style="color: #4285F4; margin-top:0; display: flex; align-items: center; gap: 10px;">
-        🛡️ Central de Comando ADM <span style="font-size: 12px; color: #666;">(Acesso: Valério)</span>
-    </h2>
+<div id="painel-adm" style="display:none; margin: 20px; padding: 25px; border: 4px solid #4285F4; border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.15); font-family: sans-serif;">
+    <h2 style="color: #4285F4; margin-top:0; border-bottom: 2px solid #eee; padding-bottom: 10px;">🛡️ Central de Comando Master</h2>
     
-    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
-        <button onclick="syncForcado()" style="background:#27ae60; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">🔄 Sync Forçado</button>
-        <button onclick="gerarTop5()" style="background:#f1c40f; color:black; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">🏆 Top 5 Evolução</button>
-        <button onclick="verLogs()" style="background:#e74c3c; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">📜 Logs de Erro</button>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px;">
+        <button onclick="syncForcado()" title="1. Sync Nuvem" style="background:#27ae60; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">🔄 Sync Total</button>
+        <button onclick="gerarTop5()" title="11. Top Evolução" style="background:#f1c40f; color:black; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">🏆 Top 5</button>
+        <button onclick="baixarBackup()" title="2. Backup TXT" style="background:#34495e; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">💾 Baixar Backup</button>
+        <button onclick="verLogs()" title="10. Logs" style="background:#e74c3c; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">📜 Erros</button>
     </div>
 
-    <div style="background: #f0f4ff; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-        <h4 style="margin-top:0;">➕ Nova Máquina</h4>
-        <input type="text" id="adm-nome-ex" placeholder="Nome do Exercício" style="padding:8px; border-radius:5px; border:1px solid #ccc;">
-        <select id="adm-grupo-ex" style="padding:8px; border-radius:5px; border:1px solid #ccc;">
-            <option value="Peito">Peito</option>
-            <option value="Costas">Costas</option>
-            <option value="Pernas">Pernas</option>
-            <option value="Braços">Braços</option>
-            <option value="Ombros">Ombros</option>
-        </select>
-        <button onclick="admAdicionarMaquina()" style="padding:8px 15px; background:#4285F4; color:white; border:none; border-radius:5px;">Adicionar</button>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: #f0f4ff; padding: 15px; border-radius: 12px;">
+            <h4 style="margin:0 0 10px 0;">➕ Gerenciar Exercícios (21, 22)</h4>
+            <input type="text" id="adm-nome-ex" placeholder="Nome" style="width:70%; padding:8px; border-radius:5px; border:1px solid #ccc;">
+            <select id="adm-grupo-ex" style="padding:8px; border-radius:5px;">
+                <option value="Peito">Peito</option><option value="Costas">Costas</option>
+                <option value="Pernas">Pernas</option><option value="Braços">Braços</option>
+            </select>
+            <button onclick="admAdicionarMaquina()" style="margin-top:10px; width:100%; padding:10px; background:#4285F4; color:white; border:none; border-radius:5px;">Salvar Novo</button>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 12px;">
+            <h4 style="margin:0 0 10px 0;">⚙️ Debug & Testes (31, 32, 34)</h4>
+            <p style="font-size:11px; margin:5px 0;">Storage: <span id="info-storage">0 KB</span></p>
+            <input type="date" id="adm-data-retroativa" style="width:100%; margin-bottom:5px;">
+            <button onclick="stressTest('Supino Reto')" style="width:100%; font-size:11px; margin-bottom:5px;">🔥 Stress Test 100pts</button>
+            <button onclick="limparCacheNuvem()" style="width:100%; font-size:11px; background:#ff9800; color:white; border:none; border-radius:3px;">🧹 Limpar Cache (Manter Login)</button>
+        </div>
     </div>
 
-    <button onclick="stressTest('Supino Reto')" style="background:none; border:1px dashed #999; color:#666; padding:5px 10px; font-size:11px; cursor:pointer;">🔥 Rodar Stress Test (Supino Reto)</button>
+    <div id="adm-status-bar" style="margin-top: 20px; font-family: monospace; font-size: 11px; color: #444; background: #eee; padding: 10px; border-radius: 8px; border-left: 5px solid #4285F4;">
+        SESSION_ID: <span id="adm-session-id">---</span> | BATERIA: <span id="adm-batt">100%</span><br>
+        DB_STATUS: <span id="adm-db-status" style="color:green; font-weight:bold;">CONECTADO</span> | ADMIN: <span id="adm-user-name">Valério</span>
+    </div>
 </div>
 
 <script>
@@ -2615,6 +2624,52 @@ async function stressTest(nomeEx) {
     localStorage.setItem(usuario + "_" + nomeEx + "_hist", JSON.stringify(fakeHist));
     location.reload();
 }
+
+// 1. CALCULAR TAMANHO DO LOCALSTORAGE
+function atualizarInfoStorage() {
+    let total = 0;
+    for (let x in localStorage) {
+        if (localStorage.hasOwnProperty(x)) {
+            total += (localStorage[x].length * 2); // Aproximação em Bytes
+        }
+    }
+    const kb = (total / 1024).toFixed(2);
+    document.getElementById("storage-info").innerText = `${kb} KB ocupados no navegador`;
+}
+
+// 2. LIMPAR CACHE (Mas mantém o login)
+function limparCacheNuvem() {
+    if(confirm("Isso apagará o histórico local para forçar o download da nuvem. Continuar?")) {
+        const email = localStorage.getItem("usuario_email");
+        localStorage.clear();
+        localStorage.setItem("usuario_email", email);
+        location.reload();
+    }
+}
+
+// 3. DELETAR TUDO (LOCAL)
+function deletarExercicioAtual() {
+    const nome = prompt("Digite o NOME EXATO do exercício para apagar o histórico local:");
+    if(nome) {
+        localStorage.removeItem(usuario + "_" + nome + "_hist");
+        localStorage.removeItem(usuario + "_" + nome);
+        alert("Dados locais de " + nome + " removidos.");
+        location.reload();
+    }
+}
+
+// 4. MONITOR DE STATUS (RODAR AO CARREGAR)
+function atualizarStatusBar() {
+    document.getElementById("adm-session-id").innerText = Math.random().toString(36).substring(7).toUpperCase();
+    if(typeof _supabase !== 'undefined') {
+        document.getElementById("adm-db-status").innerText = "SUPABASE ATIVO";
+        document.getElementById("adm-db-status").style.color = "green";
+    }
+    atualizarInfoStorage();
+}
+
+// Chame isso dentro do seu verificarAdmin()
+atualizarStatusBar();
 
 // Executa a verificação assim que carregar o script
 verificarAdmin();

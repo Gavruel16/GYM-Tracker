@@ -2726,6 +2726,44 @@ function verificarAdmin() {
         console.log("🔓 Acesso total liberado.");
     }
 }
+// 1. FUNÇÃO DE REMOVER MÁQUINA (A que você pediu)
+function admRemoverMaquina() {
+    const nomeParaRemover = document.getElementById("adm-remover-lista").value;
+    if (!nomeParaRemover) return;
+
+    if (confirm(`⚠️ CERTEZA? Isso vai apagar o ${nomeParaRemover} da lista de exercícios.`)) {
+        // Remove do array principal
+        maquinas = maquinas.filter(m => m.nome !== nomeParaRemover);
+        
+        // Salva a nova lista no LocalStorage
+        localStorage.setItem("maquinas_custom", JSON.stringify(maquinas));
+        
+        // Atualiza a tela e o próprio seletor do ADM
+        recarregarLista();
+        atualizarSelectRemover();
+        alert("🗑️ Máquina removida com sucesso!");
+    }
+}
+
+// Atualiza o select de remoção sempre que o painel abre
+function atualizarSelectRemover() {
+    const select = document.getElementById("adm-remover-lista");
+    if (!select) return;
+    
+    select.innerHTML = maquinas.map(m => `<option value="${m.nome}">${m.nome} (${m.grupo})</option>`).join("");
+}
+
+// 2. VERIFICAÇÃO DE ADMIN (CHAME NO SEU LOGIN)
+function verificarAdmin() {
+    const emailAtual = localStorage.getItem("usuario_email") || ""; 
+    if (emailAtual.toLowerCase() === EMAIL_ADM.toLowerCase()) {
+        document.getElementById("painel-adm").style.display = "block";
+        atualizarSelectRemover(); // Carrega a lista para remover
+        infoStorage();
+        document.getElementById("adm-session-id").innerText = Math.random().toString(36).substring(7).toUpperCase();
+        console.log("🔓 Terminal Dark ADM Ativo.");
+    }
+}
 
 
 // Executa a verificação assim que carregar o script

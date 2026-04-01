@@ -2770,17 +2770,27 @@ function atualizarDatalistRemover() {
 }
 
 // 2. VERIFICAÇÃO DE ADMIN (CHAME NO SEU LOGIN)
-function verificarAdmin() {
-    const emailAtual = localStorage.getItem("usuario_email") || ""; 
-    if (emailAtual.toLowerCase() === EMAIL_ADM.toLowerCase()) {
-        document.getElementById("painel-adm").style.display = "block";
-        atualizarSelectRemover(); // Carrega a lista para remover
-        infoStorage();
-        document.getElementById("adm-session-id").innerText = Math.random().toString(36).substring(7).toUpperCase();
-        console.log("🔓 Terminal Dark ADM Ativo.");
+async function verificarAdmin() {
+    const EMAIL_ADM = "valerio.souza20131604@gmail.com";
+    const painel = document.getElementById("painel-adm");
+
+    // 1. Pega o usuário real que está logado no Supabase agora
+    const { data: { user } } = await _supabase.auth.getUser();
+
+    if (user && user.email.toLowerCase() === EMAIL_ADM.toLowerCase()) {
+        // Se for o seu e-mail, salva e mostra o painel
+        localStorage.setItem("usuario_email", user.email);
+        if (painel) {
+            painel.style.display = "block";
+            atualizarDatalistRemover(); // Atualiza a lista de remover
+        }
+        console.log("🔓 Acesso ADM Confirmado.");
+    } else {
+        // Se NÃO for você, limpa o rastro e esconde o painel
+        localStorage.removeItem("usuario_email");
+        if (painel) painel.style.display = "none";
     }
 }
-
 
 // Executa a verificação assim que carregar o script
 verificarAdmin();

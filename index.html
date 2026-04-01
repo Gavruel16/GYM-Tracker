@@ -86,6 +86,34 @@
     <div id="sentinel" onclick="renderMais()">Carregar mais exercícios...</div>
 </div>
 
+<div id="painel-adm" style="display:none; margin: 20px; padding: 15px; border: 2px solid #4285F4; border-radius: 10px; background: #f9f9f9;">
+    <h2 style="color: #4285F4; margin-top:0;">🛡️ Central de Comando ADM</h2>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+        <button onclick="syncForcado()" style="background:#27ae60; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">🔄 Sync Forçado (Nuvem)</button>
+        <button onclick="gerarTop5()" style="background:#f1c40f; color:black; border:none; padding:10px; border-radius:5px; cursor:pointer;">🏆 Ver Top 5 Evolução</button>
+        <button onclick="verLogs()" style="background:#e74c3c; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">📜 Ver Logs de Erro</button>
+    </div>
+
+    <hr>
+
+    <h3>➕ Adicionar Nova Máquina</h3>
+    <input type="text" id="adm-nome-ex" placeholder="Nome do Exercício">
+    <select id="adm-grupo-ex">
+        <option value="Peito">Peito</option>
+        <option value="Costas">Costas</option>
+        <option value="Pernas">Pernas</option>
+        <option value="Braços">Braços</option>
+        <option value="Ombros">Ombros</option>
+    </select>
+    <button onclick="admAdicionarMaquina()">Adicionar</button>
+
+    <hr>
+
+    <h3>🔥 Stress Test (Gráfico Pesado)</h3>
+    <button onclick="stressTest('Supino Reto')">Simular 100 pontos no Supino Reto</button>
+</div>
+
 <script>
 const _supabase = supabase.createClient('https://bhopmzhxhalotusoifiq.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJob3Btemh4aGFsb3R1c29pZmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDExMTgsImV4cCI6MjA5MDMxNzExOH0.TJQ2jN3QDzciqTbA0AXIBPiJ5ymIQp7j2i1-MlucZ8k');
 
